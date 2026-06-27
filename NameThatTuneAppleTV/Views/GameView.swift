@@ -3,46 +3,52 @@ import SwiftUI
 struct GameView: View {
     private let engine = GameEngine()
 
-    @State private var correctSong: GameSong?
-    @State private var choices: [GameSong] = []
-    @State private var selectedSong: GameSong?
+    @State private var currentRound: GameRound?
+    @State private var answerText = ""
+    @State private var submittedAnswer: String?
     @State private var roundNumber = 0
     @State private var score = 0
 
     var body: some View {
         VStack(spacing: 40) {
-            Text("Round \(roundNumber)")
-                .font(.largeTitle)
-                .bold()
-
-            Text("Score: \(score)")
-                .font(.title2)
-
-            Text("Guess the song")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-
-            VStack(spacing: 24) {
-                ForEach(choices) { song in
-                    Button {
-                        answer(song)
-                    } label: {
-                        Text(song.title)
-                            .font(.title2)
-                    }
-                    .disabled(selectedSong != nil)
-                }
-            }
-
-            if let selectedSong, let correctSong {
-                Text(selectedSong == correctSong ? "Correct!" : "Wrong! It was \(correctSong.title).")
-                    .font(.title)
+            if let currentRound {
+                Text("Round \(currentRound.number)")
+                    .font(.largeTitle)
                     .bold()
 
-                Button("Next Round") {
-                    startNewRound()
+                Text("Score: \(score)")
+                    .font(.title2)
+
+                Text("Say the song title and artist")
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
+
+                TextField("Hold Siri button and speak answer", text: $answerText)
+                    .font(.title2)
+                    .textFieldStyle(.plain)
+                    .padding()
+                    .background(.regularMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .frame(width: 700)
+
+                Button("Submit Answer") {
+                    submitAnswer()
                 }
                 .font(.title2)
+                .disabled(answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || submittedAnswer != nil)
+
+                if let submittedAnswer {
+                    Text(isCorrect(submittedAnswer, currentRound: currentRound)
+                         ? "Correct!"
+                         : "Wrong! It was \(currentRound.correctSong.title) by \(currentRound.correctSong.artist).")
+                        .font(.title)
+                        .bold()
+
+                    Button("Next Round") {
+                        startNewRound()
+                    }
+                    .font(.title2)
+                }
             }
         }
         .padding()
@@ -51,21 +57,40 @@ struct GameView: View {
         }
     }
 
-    private func answer(_ song: GameSong) {
-        selectedSong = song
+    private func submitAnswer() {
+        let cleaned = answerText.trimmingCharacters(in: .whitespacesAndNewlines)
+        submittedAnswer = cleaned
 
-        if song == correctSong {
+        if let currentRound, isCorrect(cleaned, currentRound: currentRound) {
             score += 1
         }
     }
 
-    private func startNewRound() {
-        let round = engine.generateRound()
+    private func isCorrect(_ answer: String, currentRound: GameRound) -> Bool {
+        let normalizedAnswer = normalize(answer)
+        let normalizedTitle = normalize(currentRound.correctSong.title)
+        let normalizedArtist = normalize(currentRound.correctSong.artist)
 
-        correctSong = round.correct
-        choices = round.choices
-        selectedSong = nil
-        roundNumber += 1
+        return normalizedAnswer.contains(normalizedTitle)
+            && normalizedAnswer.contains(normalizedArtist)
+    }
+
+    private func normalize(_ text: String) -> String {
+        text
+            .lowercased()
+            .replacingOccurrences(of: " by ", with: " ")
+            .replacingOccurrences(of: "&", with: "and")
+            .filter { $0.isLetter || $0.isNumber || $0.isWhitespace }
+    }
+
+    private func startNewRound() {
+        let nextRoundNumber = roundNumber + 1
+        let newRound = engine.generateRound(number: nextRoundNumber)
+
+        currentRound = newRound
+        answerText = ""
+        submittedAnswer = nil
+        roundNumber = nextRoundNumber
     }
 }
 

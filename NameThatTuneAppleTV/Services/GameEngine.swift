@@ -1,7 +1,6 @@
 import Foundation
 
 class GameEngine {
-
     private let songs = [
         GameSong(title: "Billie Jean", artist: "Michael Jackson"),
         GameSong(title: "Africa", artist: "Toto"),
@@ -11,9 +10,8 @@ class GameEngine {
         GameSong(title: "Bohemian Rhapsody", artist: "Queen")
     ]
 
-    func generateRound() -> (correct: GameSong, choices: [GameSong]) {
+    func generateRound(number: Int) -> GameRound {
         let correct = songs.randomElement()!
-
         var choices = [correct]
 
         while choices.count < 4 {
@@ -23,8 +21,10 @@ class GameEngine {
             }
         }
 
-        choices.shuffle()
-
-        return (correct, choices)
+        return GameRound(
+            number: number,
+            correctSong: correct,
+            choices: choices.shuffled()
+        )
     }
 }
