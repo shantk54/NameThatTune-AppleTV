@@ -1,4 +1,4 @@
-import Foundation
+internal import Foundation
 import MusicKit
 
 struct GameSong: Identifiable, Equatable {

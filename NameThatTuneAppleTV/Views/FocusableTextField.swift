@@ -1,3 +1,4 @@
+
 import SwiftUI
 import UIKit
 
@@ -42,9 +43,20 @@ struct FocusableTextField: UIViewRepresentable {
         @Binding var text: String
         var onSubmit: () -> Void
 
+        private var submitTask: Task<Void, Never>?
+        private var hasSubmitted = false
+
         init(text: Binding<String>, onSubmit: @escaping () -> Void) {
             _text = text
             self.onSubmit = onSubmit
+        }
+
+        private func submitOnce(_ textField: UITextField? = nil) {
+            guard !hasSubmitted else { return }
+            hasSubmitted = true
+            submitTask?.cancel()
+            textField?.resignFirstResponder()
+            onSubmit()
         }
 
         @objc func textDidChange(_ sender: UITextField) {
@@ -52,23 +64,29 @@ struct FocusableTextField: UIViewRepresentable {
 
             let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            if cleaned.count >= 3 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    sender.resignFirstResponder()
-                    self.onSubmit()
+            submitTask?.cancel()
+
+            guard cleaned.count >= 3 else { return }
+
+            submitTask = Task { [weak self, weak sender] in
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+
+                guard !Task.isCancelled else { return }
+
+                await MainActor.run {
+                    self?.submitOnce(sender)
                 }
             }
         }
 
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-            textField.resignFirstResponder()
-            onSubmit()
+            submitOnce(textField)
             return true
         }
 
         func textFieldDidEndEditing(_ textField: UITextField) {
             text = textField.text ?? ""
-            onSubmit()
+            submitOnce(textField)
         }
     }
 }
