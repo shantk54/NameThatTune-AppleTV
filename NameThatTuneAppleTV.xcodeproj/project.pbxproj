@@ -10,9 +10,22 @@
 		CE71494A2FF1726C00A15425 /* NameThatTuneAppleTV.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NameThatTuneAppleTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CE64096A2FF176610036B364 /* Exceptions for "NameThatTuneAppleTV" folder in "NameThatTuneAppleTV" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CE7149492FF1726C00A15425 /* NameThatTuneAppleTV */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CE71494C2FF1726C00A15425 /* NameThatTuneAppleTV */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CE64096A2FF176610036B364 /* Exceptions for "NameThatTuneAppleTV" folder in "NameThatTuneAppleTV" target */,
+			);
 			path = NameThatTuneAppleTV;
 			sourceTree = "<group>";
 		};
@@ -251,11 +264,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = NameThatTuneAppleTV/NameThatTuneAppleTV.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 6M2K57YHNF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NameThatTuneAppleTV/Info.plist;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "This app uses your Apple Music library to create personalized music guessing rounds.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -263,7 +279,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.NameThatTuneAppleTV;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shantk54.NameThatTuneAppleTV;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -280,11 +296,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = NameThatTuneAppleTV/NameThatTuneAppleTV.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 6M2K57YHNF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NameThatTuneAppleTV/Info.plist;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "This app uses your Apple Music library to create personalized music guessing rounds.";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIUserInterfaceStyle = Automatic;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -292,7 +311,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.NameThatTuneAppleTV;
+				PRODUCT_BUNDLE_IDENTIFIER = com.shantk54.NameThatTuneAppleTV;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;

@@ -12,9 +12,9 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
                 
                 NavigationLink {
-                    GameView()
+                    MusicTestView()
                 } label: {
-                    Text("Start Game")
+                    Text("MusicKit Test")
                         .font(.title2)
                         .padding(.horizontal, 48)
                         .padding(.vertical, 20)
