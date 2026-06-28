@@ -26,15 +26,12 @@ struct GameView: View {
                 FocusableTextField(
                     text: $answerText,
                     placeholder: "Hold Siri button and speak answer",
-                    becomeFirstResponder: submittedAnswer == nil
+                    becomeFirstResponder: submittedAnswer == nil,
+                    onSubmit: {
+                        submitAnswer()
+                    }
                 )
                 .frame(width: 700, height: 70)
-
-                Button("Submit Answer") {
-                    submitAnswer()
-                }
-                .font(.title2)
-                .disabled(answerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || submittedAnswer != nil)
 
                 if let submittedAnswer {
                     Text(isCorrect(submittedAnswer, currentRound: currentRound)
@@ -58,6 +55,11 @@ struct GameView: View {
 
     private func submitAnswer() {
         let cleaned = answerText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard submittedAnswer == nil, !cleaned.isEmpty else {
+            return
+        }
+
         submittedAnswer = cleaned
 
         if let currentRound, isCorrect(cleaned, currentRound: currentRound) {
@@ -90,7 +92,6 @@ struct GameView: View {
         answerText = ""
         submittedAnswer = nil
         roundNumber = nextRoundNumber
-
     }
 }
 
