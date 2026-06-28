@@ -119,24 +119,22 @@ struct ContentView: View {
 private struct AlbumWallView: View {
     let artworks: [Artwork]
 
-    private let columns = Array(repeating: GridItem(.fixed(150), spacing: 18), count: 9)
+    private let coverSize: CGFloat = 220
+    private let columns = Array(repeating: GridItem(.fixed(220), spacing: 0), count: 9)
 
     private var coverCount: Int {
-        max(artworks.count, 54)
+        max(artworks.count, 72)
     }
 
     var body: some View {
         GeometryReader { geometry in
             ScrollView(.vertical, showsIndicators: false) {
-                LazyVGrid(columns: columns, spacing: 18) {
+                LazyVGrid(columns: columns, spacing: 0) {
                     ForEach(0..<coverCount, id: \.self) { index in
                         albumCoverTile(for: index)
                     }
                 }
-                .rotationEffect(.degrees(-6))
-                .scaleEffect(1.14)
-                .offset(x: -60, y: -80)
-                .frame(minHeight: geometry.size.height + 220)
+                .frame(minHeight: geometry.size.height)
             }
             .disabled(true)
         }
@@ -147,16 +145,15 @@ private struct AlbumWallView: View {
         let artwork = artworks[index % artworks.count]
 
         ZStack {
-            RoundedRectangle(cornerRadius: 18)
-                .fill(.thinMaterial)
+            Color.black
 
-            ArtworkImage(artwork, width: 300, height: 300)
-                .scaledToFill()
+            ArtworkImage(artwork, width: coverSize, height: coverSize)
+                .scaledToFit()
+                .frame(width: coverSize, height: coverSize)
         }
-        .frame(width: 150, height: 150)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .shadow(radius: 14)
-        .opacity(0.84)
+        .frame(width: coverSize, height: coverSize)
+        .clipped()
+        .opacity(0.88)
     }
 }
 
