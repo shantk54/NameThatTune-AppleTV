@@ -7,10 +7,6 @@ struct ContentView: View {
                 Text("Name That Tune")
                     .font(.system(size: 72, weight: .bold))
 
-                Text("Apple Music Edition")
-                    .font(.title)
-                    .foregroundStyle(.secondary)
-
                 NavigationLink {
                     GameView()
                 } label: {
