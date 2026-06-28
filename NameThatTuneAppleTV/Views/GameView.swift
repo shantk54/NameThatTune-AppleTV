@@ -3,6 +3,7 @@ import SwiftUI
 import MusicKit
 
 struct GameView: View {
+    let albumArtworks: [Artwork]
     @Environment(\.dismiss) private var dismiss
     @StateObject private var musicService = AppleMusicService()
 
@@ -27,6 +28,10 @@ struct GameView: View {
     @State private var isPlayingClip = false
     @State private var isAnswering = false
     @State private var didSetup = false
+
+    init(albumArtworks: [Artwork] = []) {
+        self.albumArtworks = albumArtworks
+    }
 
     enum FocusTarget: Hashable {
         case playerCount(Int)
@@ -99,9 +104,24 @@ struct GameView: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            albumArtworkBackground
-                .ignoresSafeArea()
+            if shouldShowAlbumWallBackground, !albumArtworks.isEmpty {
+                AlbumWallView(artworks: albumArtworks)
+                    .ignoresSafeArea()
 
+                LinearGradient(
+                    colors: [
+                        .black.opacity(0.62),
+                        .black.opacity(0.34),
+                        .black.opacity(0.72)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+            } else {
+                albumArtworkBackground
+                    .ignoresSafeArea()
+            }
 
             VStack(spacing: 40) {
                 if isLoadingMusic {
@@ -251,6 +271,14 @@ struct GameView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .padding(.horizontal, 56)
+        .padding(.vertical, 42)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 34))
+        .overlay(
+            RoundedRectangle(cornerRadius: 34)
+                .stroke(.white.opacity(0.12), lineWidth: 1)
+        )
         .animation(.easeInOut(duration: 0.25), value: selectedPlayerCount)
         .animation(.easeInOut(duration: 0.25), value: selectedDifficulty)
     }
@@ -652,6 +680,11 @@ struct GameView: View {
         case (false, false):
             return .red
         }
+    }
+
+    
+    private var shouldShowAlbumWallBackground: Bool {
+        !isLoadingMusic && !isGameOver && currentRound == nil && (selectedPlayerCount == nil || selectedRoundCount == nil || selectedDifficulty == nil)
     }
 
     @ViewBuilder

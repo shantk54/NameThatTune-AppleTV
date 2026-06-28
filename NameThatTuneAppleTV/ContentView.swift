@@ -67,7 +67,7 @@ struct ContentView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 32))
 
                 NavigationLink {
-                    GameView()
+                    GameView(albumArtworks: albumWallService.albumArtworks)
                 } label: {
                     Text("Start Game")
                         .font(.title2)
@@ -116,7 +116,7 @@ struct ContentView: View {
     }
 }
 
-private struct AlbumWallView: View {
+struct AlbumWallView: View {
     let artworks: [Artwork]
     @State private var shuffledArtworks: [Artwork] = []
 

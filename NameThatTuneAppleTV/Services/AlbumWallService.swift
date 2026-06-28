@@ -29,21 +29,21 @@ final class AlbumWallService: ObservableObject {
         }
 
         do {
-            var request = MusicLibraryRequest<Song>()
-            request.limit = 500
+            var request = MusicLibraryRequest<Album>()
+            request.limit = 700
 
             let response = try await request.response()
-            let songs = Array(response.items)
-            let artworks = uniqueArtworks(from: songs)
+            let albums = Array(response.items)
+            let artworks = uniqueArtworks(from: albums)
             let randomizedArtworks = Array(artworks.shuffled().prefix(targetArtworkCount))
 
-            print("AlbumWallService: songs returned = \(songs.count)")
-            print("AlbumWallService: artworks found = \(artworks.count)")
+            print("AlbumWallService: albums returned = \(albums.count)")
+            print("AlbumWallService: album artworks found = \(artworks.count)")
             print("AlbumWallService: randomized artworks displayed = \(randomizedArtworks.count)")
             if let firstArtworkURL = randomizedArtworks.first?.url(width: 400, height: 400) {
                 print("AlbumWallService: first displayed artwork URL = \(firstArtworkURL)")
-            } else if let firstSong = songs.first {
-                print("AlbumWallService: first song has artwork = \(firstSong.artwork != nil), title = \(firstSong.title), artist = \(firstSong.artistName)")
+            } else if let firstAlbum = albums.first {
+                print("AlbumWallService: first album has artwork = \(firstAlbum.artwork != nil), title = \(firstAlbum.title), artist = \(firstAlbum.artistName)")
             }
 
             albumArtworks = randomizedArtworks
@@ -58,11 +58,11 @@ final class AlbumWallService: ObservableObject {
         }
     }
 
-    private func uniqueArtworks(from songs: [Song]) -> [Artwork] {
+    private func uniqueArtworks(from albums: [Album]) -> [Artwork] {
         var seenArtworkURLs: Set<String> = []
 
-        return songs.compactMap { song in
-            guard let artwork = song.artwork,
+        return albums.compactMap { album in
+            guard let artwork = album.artwork,
                   let artworkURL = artwork.url(width: 400, height: 400) else {
                 return nil
             }
