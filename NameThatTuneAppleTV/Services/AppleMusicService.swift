@@ -11,12 +11,16 @@ final class AppleMusicService: ObservableObject {
     @Published var songs: [Song] = []
     @Published var errorMessage: String?
 
-    private let player = ApplicationMusicPlayer.shared
+    private var player: ApplicationMusicPlayer {
+        ApplicationMusicPlayer.shared
+    }
     private var previewPlayer: AVPlayer?
     private let recentPlaylistIDsKey = "recentPlaylistIDs"
 
     func requestAuthorization() async {
+        print("AppleMusicService: requesting authorization")
         authorizationStatus = await MusicAuthorization.request()
+        print("AppleMusicService: authorizationStatus = \(authorizationStatus)")
     }
 
     func loadLibrarySongs() async {
@@ -32,18 +36,37 @@ final class AppleMusicService: ObservableObject {
     }
 
     func loadLibraryPlaylists() async {
+        print("AppleMusicService: starting playlist load")
         do {
             var request = MusicLibraryRequest<Playlist>()
             request.limit = 100
 
-            let response = try await request.response()
-            playlists = sortPlaylistsByLocalRecency(Array(response.items))
+            let response = try await withTimeout(seconds: 12) {
+                try await request.response()
+            }
+            let loadedPlaylists = Array(response.items)
+            let playlistsWithArtwork = loadedPlaylists.filter { playlist in
+                playlist.artwork?.url(width: 400, height: 400) != nil
+            }
+
+            print("AppleMusicService: playlists returned = \(loadedPlaylists.count)")
+            print("AppleMusicService: playlists with artwork = \(playlistsWithArtwork.count)")
+
+            if let firstPlaylist = loadedPlaylists.first {
+                let firstArtworkURL = firstPlaylist.artwork?.url(width: 400, height: 400)
+                print("AppleMusicService: first playlist = \(firstPlaylist.name)")
+                print("AppleMusicService: first playlist artwork URL = \(String(describing: firstArtworkURL))")
+            }
+
+            playlists = sortPlaylistsByLocalRecency(loadedPlaylists)
         } catch {
+            print("AppleMusicService: failed to load playlists: \(error.localizedDescription)")
             errorMessage = "Failed to load playlists: \(error.localizedDescription)"
         }
     }
 
     func loadSongs(from playlist: Playlist) async {
+        print("AppleMusicService: loading songs from playlist = \(playlist.name)")
         do {
             selectedPlaylist = playlist
             markPlaylistAsRecentlyUsed(playlist)
@@ -60,13 +83,43 @@ final class AppleMusicService: ObservableObject {
                 }
             }
 
+            print("AppleMusicService: playlist tracks returned = \(playlistTracks.count)")
+            print("AppleMusicService: playable songs found = \(songs.count)")
+
             if songs.isEmpty {
                 errorMessage = "No playable songs found in \(playlist.name)."
             } else {
                 errorMessage = nil
             }
         } catch {
+            print("AppleMusicService: failed to load songs from \(playlist.name): \(error.localizedDescription)")
             errorMessage = "Failed to load songs from \(playlist.name): \(error.localizedDescription)"
+        }
+    }
+
+    private func withTimeout<T>(seconds: UInt64, operation: @escaping () async throws -> T) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask {
+                try await operation()
+            }
+
+            group.addTask {
+                try await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+                throw TimeoutError()
+            }
+
+            guard let result = try await group.next() else {
+                throw TimeoutError()
+            }
+
+            group.cancelAll()
+            return result
+        }
+    }
+
+    private struct TimeoutError: LocalizedError {
+        var errorDescription: String? {
+            "Apple Music request timed out."
         }
     }
 

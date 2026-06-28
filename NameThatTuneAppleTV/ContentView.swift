@@ -1,4 +1,5 @@
 import SwiftUI
+import MusicKit
 
 struct ContentView: View {
     @StateObject private var albumWallService = AlbumWallService()
@@ -23,7 +24,7 @@ struct ContentView: View {
 
     private var titlePageView: some View {
         ZStack {
-            if albumWallService.albumArtworkURLs.isEmpty {
+            if albumWallService.albumArtworks.isEmpty {
                 LinearGradient(
                     colors: [
                         Color.black,
@@ -35,7 +36,7 @@ struct ContentView: View {
                 )
                 .ignoresSafeArea()
             } else {
-                AlbumWallView(artworkURLs: albumWallService.albumArtworkURLs)
+                AlbumWallView(artworks: albumWallService.albumArtworks)
                     .ignoresSafeArea()
             }
 
@@ -56,7 +57,7 @@ struct ContentView: View {
                         .font(.system(size: 76, weight: .heavy, design: .rounded))
                         .shadow(radius: 18)
 
-                    Text(albumWallService.albumArtworkURLs.isEmpty ? "Guess the song. Beat your friends." : "Guess the song. Beat your friends.")
+                    Text("Guess the song. Beat your friends.")
                         .font(.title2)
                         .foregroundStyle(.secondary)
                 }
@@ -116,12 +117,12 @@ struct ContentView: View {
 }
 
 private struct AlbumWallView: View {
-    let artworkURLs: [URL]
+    let artworks: [Artwork]
 
     private let columns = Array(repeating: GridItem(.fixed(150), spacing: 18), count: 9)
 
     private var coverCount: Int {
-        max(artworkURLs.count, 54)
+        max(artworks.count, 54)
     }
 
     var body: some View {
@@ -143,24 +144,14 @@ private struct AlbumWallView: View {
 
     @ViewBuilder
     private func albumCoverTile(for index: Int) -> some View {
-        let artworkURL = artworkURLs[index % artworkURLs.count]
+        let artwork = artworks[index % artworks.count]
 
-        AsyncImage(url: artworkURL) { phase in
-            ZStack {
-                RoundedRectangle(cornerRadius: 18)
-                    .fill(.thinMaterial)
+        ZStack {
+            RoundedRectangle(cornerRadius: 18)
+                .fill(.thinMaterial)
 
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                default:
-                    Image(systemName: "music.note")
-                        .font(.system(size: 42, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.45))
-                }
-            }
+            ArtworkImage(artwork, width: 300, height: 300)
+                .scaledToFill()
         }
         .frame(width: 150, height: 150)
         .clipShape(RoundedRectangle(cornerRadius: 18))
