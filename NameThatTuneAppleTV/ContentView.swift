@@ -17,7 +17,7 @@ struct ContentView: View {
             .task {
                 guard !didStartLoadingAlbumWall else { return }
                 didStartLoadingAlbumWall = true
-                await albumWallService.loadAlbumWallArtwork()
+                await albumWallService.loadAlbumWallArtwork(targetArtworkCount: 45)
             }
         }
     }
@@ -118,31 +118,49 @@ struct ContentView: View {
 
 private struct AlbumWallView: View {
     let artworks: [Artwork]
+    @State private var shuffledArtworks: [Artwork] = []
 
-    private let coverSize: CGFloat = 220
-    private let columns = Array(repeating: GridItem(.fixed(220), spacing: 0), count: 9)
+    private let columnCount = 9
+    private let rowCount = 5
+
+    private var displayedArtworks: [Artwork] {
+        shuffledArtworks.isEmpty ? artworks : shuffledArtworks
+    }
 
     private var coverCount: Int {
-        max(artworks.count, 72)
+        columnCount * rowCount
     }
 
     var body: some View {
         GeometryReader { geometry in
-            ScrollView(.vertical, showsIndicators: false) {
-                LazyVGrid(columns: columns, spacing: 0) {
-                    ForEach(0..<coverCount, id: \.self) { index in
-                        albumCoverTile(for: index)
-                    }
+            let coverSize = min(
+                geometry.size.width / CGFloat(columnCount),
+                geometry.size.height / CGFloat(rowCount)
+            )
+            let columns = Array(repeating: GridItem(.fixed(coverSize), spacing: 0), count: columnCount)
+
+            LazyVGrid(columns: columns, spacing: 0) {
+                ForEach(0..<coverCount, id: \.self) { index in
+                    albumCoverTile(for: index, coverSize: coverSize)
                 }
-                .frame(minHeight: geometry.size.height)
             }
-            .disabled(true)
+            .frame(
+                width: coverSize * CGFloat(columnCount),
+                height: coverSize * CGFloat(rowCount)
+            )
+            .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+            .onAppear {
+                shuffledArtworks = artworks.shuffled()
+            }
+            .onChange(of: artworks.count) { _, _ in
+                shuffledArtworks = artworks.shuffled()
+            }
         }
     }
 
     @ViewBuilder
-    private func albumCoverTile(for index: Int) -> some View {
-        let artwork = artworks[index % artworks.count]
+    private func albumCoverTile(for index: Int, coverSize: CGFloat) -> some View {
+        let artwork = displayedArtworks[index % displayedArtworks.count]
 
         ZStack {
             Color.black

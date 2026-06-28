@@ -10,7 +10,7 @@ final class AlbumWallService: ObservableObject {
     @Published var didFinishLoading = false
     @Published var errorMessage: String?
 
-    func loadAlbumWallArtwork() async {
+    func loadAlbumWallArtwork(targetArtworkCount: Int = 45) async {
         isLoading = true
         didFinishLoading = false
         errorMessage = nil
@@ -30,21 +30,23 @@ final class AlbumWallService: ObservableObject {
 
         do {
             var request = MusicLibraryRequest<Song>()
-            request.limit = 100
+            request.limit = 500
 
             let response = try await request.response()
             let songs = Array(response.items)
             let artworks = uniqueArtworks(from: songs)
+            let randomizedArtworks = Array(artworks.shuffled().prefix(targetArtworkCount))
 
             print("AlbumWallService: songs returned = \(songs.count)")
             print("AlbumWallService: artworks found = \(artworks.count)")
-            if let firstArtworkURL = artworks.first?.url(width: 400, height: 400) {
-                print("AlbumWallService: first artwork URL = \(firstArtworkURL)")
+            print("AlbumWallService: randomized artworks displayed = \(randomizedArtworks.count)")
+            if let firstArtworkURL = randomizedArtworks.first?.url(width: 400, height: 400) {
+                print("AlbumWallService: first displayed artwork URL = \(firstArtworkURL)")
             } else if let firstSong = songs.first {
                 print("AlbumWallService: first song has artwork = \(firstSong.artwork != nil), title = \(firstSong.title), artist = \(firstSong.artistName)")
             }
 
-            albumArtworks = artworks
+            albumArtworks = randomizedArtworks
             isLoading = false
             didFinishLoading = true
         } catch {
