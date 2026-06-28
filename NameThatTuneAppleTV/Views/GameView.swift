@@ -21,6 +21,7 @@ struct GameView: View {
     @State private var lastSongPoints = 0
     @State private var lastArtistPoints = 0
     @State private var isLoadingMusic = true
+    @State private var isLoadingPlaylists = false
     @State private var isLoadingPlaylistSongs = false
     @State private var playlistSearchText = ""
     @State private var isPlayingClip = false
@@ -104,9 +105,15 @@ struct GameView: View {
 
             VStack(spacing: 40) {
                 if isLoadingMusic {
-                    Text("Loading Apple Music...")
+                    ProgressView()
+
+                    Text("GameView: Checking Apple Music access...")
                         .font(.largeTitle)
                         .bold()
+
+                    Text("This is the gameplay screen, not the album-wall title screen.")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
 
                     if let errorMessage = musicService.errorMessage {
                         Text(errorMessage)
@@ -292,6 +299,11 @@ struct GameView: View {
             if isLoadingPlaylistSongs {
                 ProgressView()
                 Text("Loading playlist songs...")
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
+            } else if isLoadingPlaylists && musicService.playlists.isEmpty {
+                ProgressView()
+                Text("Loading playlists...")
                     .font(.title2)
                     .foregroundStyle(.secondary)
             } else if musicService.playlists.isEmpty {
@@ -727,10 +739,23 @@ struct GameView: View {
     private func setupMusic() async {
         isLoadingMusic = true
 
-        await musicService.requestAuthorization()
-        await musicService.loadLibraryPlaylists()
+        let currentStatus = MusicAuthorization.currentStatus
+        musicService.authorizationStatus = currentStatus
+
+        if currentStatus == .notDetermined {
+            await musicService.requestAuthorization()
+        }
 
         isLoadingMusic = false
+
+        guard musicService.authorizationStatus == .authorized else {
+            musicService.errorMessage = "Apple Music access is required to choose playlists."
+            return
+        }
+
+        isLoadingPlaylists = true
+        await musicService.loadLibraryPlaylists()
+        isLoadingPlaylists = false
     }
 
     private func choosePlaylist(_ playlist: Playlist) {
