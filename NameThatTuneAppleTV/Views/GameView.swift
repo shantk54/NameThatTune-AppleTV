@@ -17,6 +17,7 @@ struct GameView: View {
     @State private var selectedRoundCount: Int?
     @State private var selectedDifficulty: GameDifficulty?
     @State private var isGameOver = false
+    @State private var showQuitGameConfirmation = false
     @State private var lastSongPoints = 0
     @State private var lastArtistPoints = 0
     @State private var isLoadingMusic = true
@@ -134,6 +135,18 @@ struct GameView: View {
         .onExitCommand {
             handleBackButton()
         }
+        .alert("Quit Game?", isPresented: $showQuitGameConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Quit", role: .destructive) {
+                musicService.stop()
+                quitCurrentGame()
+            }
+        } message: {
+            Text("Your current game progress will be lost.")
+        }
+        .onDisappear {
+            musicService.stop()
+        }
         .task {
             guard !didSetup else { return }
             didSetup = true
@@ -154,7 +167,7 @@ struct GameView: View {
                     .font(.title2)
                     .bold()
 
-                HStack(spacing: 60) {
+                HStack(spacing: 90) {
                     ForEach([1, 2, 3, 4], id: \.self) { playerCount in
                         optionButton(
                             title: "\(playerCount)",
@@ -181,12 +194,13 @@ struct GameView: View {
                         .font(.title2)
                         .bold()
 
-                    HStack(spacing: 60) {
+                    HStack(spacing: 90) {
                         ForEach(GameDifficulty.allCases) { difficulty in
                             optionButton(
                                 title: difficulty.rawValue,
                                 subtitle: "\(difficulty.clipSeconds)s clip",
-                                isSelected: selectedDifficulty == difficulty
+                                isSelected: selectedDifficulty == difficulty,
+                                fixedWidth: 220
                             ) {
                                 selectedDifficulty = difficulty
                                 selectedRoundCount = nil
@@ -208,7 +222,7 @@ struct GameView: View {
                         .font(.title2)
                         .bold()
 
-                    HStack(spacing: 60) {
+                    HStack(spacing: 90) {
                         ForEach([3, 5, 10], id: \.self) { roundCount in
                             optionButton(
                                 title: "\(roundCount)",
@@ -234,7 +248,7 @@ struct GameView: View {
         .animation(.easeInOut(duration: 0.25), value: selectedDifficulty)
     }
 
-    private func optionButton(title: String, subtitle: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func optionButton(title: String, subtitle: String, isSelected: Bool, fixedWidth: CGFloat? = nil, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 8) {
                 Text(title)
@@ -250,8 +264,9 @@ struct GameView: View {
                         .lineLimit(1)
                 }
             }
-            .padding(.horizontal, 26)
-            .frame(minWidth: 170, minHeight: 115)
+            .padding(.horizontal, 34)
+            .padding(.vertical, 18)
+            .frame(minWidth: fixedWidth ?? 170, minHeight: 125)
             .background(isSelected ? .thinMaterial : .regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 20))
             .overlay(
@@ -385,81 +400,58 @@ struct GameView: View {
     }
 
     private func roundView(_ currentRound: GameRound) -> some View {
-        VStack(spacing: 32) {
-            Text("Round \(displayedRoundNumber) of \(selectedRoundCount ?? 0)")
-                .font(.largeTitle)
-                .bold()
-
-            Text("Player \(currentPlayerNumber)'s Turn")
-                .font(.title2)
-                .bold()
-
-            scoreBoardView
-
-            if let errorMessage = musicService.errorMessage {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-            }
-
-            if isPlayingClip {
-                Text("Listen...")
-                    .font(.title)
-                    .foregroundStyle(.secondary)
-            } else if submittedAnswer == nil {
-                Text("Say the song title and artist")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
+        Group {
+            if submittedAnswer != nil {
+                EmptyView()
             } else {
-                Text("Answer revealed")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-            }
+                VStack(spacing: 32) {
+                    Text("Round \(displayedRoundNumber) of \(selectedRoundCount ?? 0)")
+                        .font(.largeTitle)
+                        .bold()
 
-            if isAnswering && submittedAnswer == nil {
-                FocusableTextField(
-                    text: $answerText,
-                    placeholder: "Hold Siri button and speak answer",
-                    becomeFirstResponder: true,
-                    onSubmit: {
-                        submitAnswer()
+                    Text("Player \(currentPlayerNumber)'s Turn")
+                        .font(.title2)
+                        .bold()
+
+                    scoreBoardView
+
+                    if let errorMessage = musicService.errorMessage {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
                     }
-                )
-                .frame(width: 700, height: 70)
-                .id(currentRound.number)
-            } else if !answerText.isEmpty {
-                Text(answerText)
-                    .font(.title2)
-                    .padding()
-                    .frame(width: 700, height: 70)
-                    .background(.regularMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
 
-            if let submittedAnswer {
-                let points = scoreAnswer(submittedAnswer, currentRound: currentRound)
-
-                Text(points.total > 0
-                     ? "Player \(currentPlayerNumber) got \(points.total)/20 points!"
-                     : "Wrong! It was \(currentRound.correctSong.title) by \(currentRound.correctSong.artist).")
-                    .font(.title)
-                    .bold()
-                    .multilineTextAlignment(.center)
-
-                Text("Song: \(lastSongPoints)/10  •  Artist: \(lastArtistPoints)/10")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-
-                Button(roundNumber >= totalTurnCount ? "Show Final Scores" : "Next Turn") {
-                    if roundNumber >= totalTurnCount {
-                        finishGame()
+                    if isPlayingClip {
+                        Text("Listen...")
+                            .font(.title)
+                            .foregroundStyle(.secondary)
                     } else {
-                        startNewRound()
+                        Text("Say the song title and artist")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if isAnswering {
+                        FocusableTextField(
+                            text: $answerText,
+                            placeholder: "Hold Siri button and speak answer",
+                            becomeFirstResponder: true,
+                            onSubmit: {
+                                submitAnswer()
+                            }
+                        )
+                        .frame(width: 700, height: 70)
+                        .id(currentRound.number)
+                    } else if !answerText.isEmpty {
+                        Text(answerText)
+                            .font(.title2)
+                            .padding()
+                            .frame(width: 700, height: 70)
+                            .background(.regularMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
-                .font(.title2)
-                .focused($focusedControl, equals: .nextRoundButton)
             }
         }
     }
@@ -525,26 +517,129 @@ struct GameView: View {
     }
 
     private func answerRevealCard(_ currentRound: GameRound) -> some View {
-        VStack(alignment: .trailing, spacing: 8) {
-            Text("Now Playing")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        VStack(spacing: 36) {
+            HStack {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Round \(displayedRoundNumber) of \(selectedRoundCount ?? 0)")
+                        .font(.headline)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 8)
+                        .background(.regularMaterial)
+                        .clipShape(Capsule())
 
-            Text(currentRound.correctSong.title)
-                .font(.title3)
-                .bold()
-                .multilineTextAlignment(.trailing)
+                    Text("Player \(currentPlayerNumber)'s Reveal")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
 
-            Text(currentRound.correctSong.artist)
-                .font(.headline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.trailing)
+                Spacer()
+
+                scoreBoardView
+            }
+            .padding(.horizontal, 80)
+            .padding(.top, 40)
+
+            Spacer()
+
+            HStack(spacing: 56) {
+                albumArtworkCard(for: currentRound)
+
+                VStack(alignment: .leading, spacing: 20) {
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(currentRound.correctSong.artist)
+                            .font(.title2)
+                            .bold()
+
+                        Text(currentRound.correctSong.title)
+                            .font(.system(size: 52, weight: .heavy, design: .rounded))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.55)
+                    }
+
+                    HStack(spacing: 14) {
+                        correctnessPill(label: "Song", points: lastSongPoints)
+                        correctnessPill(label: "Artist", points: lastArtistPoints)
+                    }
+
+                    Text("You Said: \(submittedAnswer ?? "")")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.55)
+                        .frame(width: 820, alignment: .leading)
+
+                    Button(roundNumber >= totalTurnCount ? "Show Final Scores" : "Next Turn") {
+                        if roundNumber >= totalTurnCount {
+                            finishGame()
+                        } else {
+                            startNewRound()
+                        }
+                    }
+                    .font(.title2)
+                    .focused($focusedControl, equals: .nextRoundButton)
+                    .padding(.top, 10)
+                }
+                .frame(width: 820, alignment: .leading)
+            }
+
+            Spacer()
         }
-        .padding(24)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .padding(.top, 40)
-        .padding(.trailing, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+
+    private func albumArtworkCard(for currentRound: GameRound) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 28)
+                .fill(.regularMaterial)
+                .shadow(radius: 30)
+
+            if let artworkURL = currentRound.correctSong.musicKitSong?.artwork?.url(width: 700, height: 700) {
+                AsyncImage(url: artworkURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFit()
+                    default:
+                        Image(systemName: "music.note")
+                            .font(.system(size: 90))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } else {
+                Image(systemName: "music.note")
+                    .font(.system(size: 90))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(width: 380, height: 380)
+        .clipShape(RoundedRectangle(cornerRadius: 28))
+    }
+
+    private func correctnessPill(label: String, points: Int) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: points > 0 ? "checkmark.circle.fill" : "xmark.circle.fill")
+            Text("\(label): \(points)/10")
+                .bold()
+        }
+        .font(.headline)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(points > 0 ? .green.opacity(0.85) : .red.opacity(0.75))
+        .clipShape(Capsule())
+    }
+
+    private var answerResultColor: Color {
+        switch (lastSongPoints > 0, lastArtistPoints > 0) {
+        case (true, true):
+            return .green
+        case (true, false), (false, true):
+            return .yellow
+        case (false, false):
+            return .red
+        }
     }
 
     @ViewBuilder
@@ -557,6 +652,9 @@ struct GameView: View {
                     image
                         .resizable()
                         .scaledToFill()
+                        .blur(radius: 22)
+                        .opacity(0.55)
+                        .overlay(.black.opacity(0.18))
                 default:
                     Color.black
                 }
@@ -579,28 +677,51 @@ struct GameView: View {
             return
         }
 
-        if currentRound == nil && !isGameOver {
-            if selectedRoundCount != nil {
-                selectedRoundCount = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    if let selectedDifficulty {
-                        focusedControl = .difficulty(selectedDifficulty)
-                    }
-                }
-            } else if selectedDifficulty != nil {
-                selectedDifficulty = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    if let selectedPlayerCount {
-                        focusedControl = .playerCount(selectedPlayerCount)
-                    }
-                }
-            } else if selectedPlayerCount != nil {
-                selectedPlayerCount = nil
-                playerScores = []
-            } else {
-                dismiss()
-            }
+        if currentRound != nil || isGameOver {
+            showQuitGameConfirmation = true
+            return
         }
+
+        if selectedRoundCount != nil {
+            selectedRoundCount = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let selectedDifficulty {
+                    focusedControl = .difficulty(selectedDifficulty)
+                }
+            }
+        } else if selectedDifficulty != nil {
+            selectedDifficulty = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                if let selectedPlayerCount {
+                    focusedControl = .playerCount(selectedPlayerCount)
+                }
+            }
+        } else if selectedPlayerCount != nil {
+            selectedPlayerCount = nil
+            playerScores = []
+        } else {
+            dismiss()
+        }
+    }
+
+    private func quitCurrentGame() {
+        musicService.stop()
+        showQuitGameConfirmation = false
+        currentRound = nil
+        answerText = ""
+        submittedAnswer = nil
+        roundNumber = 0
+        score = 0
+        playerScores = []
+        selectedPlayerCount = nil
+        selectedRoundCount = nil
+        selectedDifficulty = nil
+        isGameOver = false
+        lastSongPoints = 0
+        lastArtistPoints = 0
+        isPlayingClip = false
+        isAnswering = false
+        dismiss()
     }
 
     private func setupMusic() async {
@@ -741,16 +862,55 @@ struct GameView: View {
     }
 
     private func scoreAnswer(_ answer: String, currentRound: GameRound) -> (song: Int, artist: Int, total: Int) {
-        let titleToMatch = removeParentheses(from: currentRound.correctSong.title)
         let artistToMatch = currentRound.correctSong.artist
 
-        let songMatches = matchesAnswer(answer, target: titleToMatch)
+        let songMatches = titleCandidates(for: currentRound.correctSong.title).contains { candidate in
+            matchesAnswer(answer, target: candidate)
+        }
         let artistMatches = matchesAnswer(answer, target: artistToMatch)
 
         let songPoints = songMatches ? 10 : 0
         let artistPoints = artistMatches ? 10 : 0
 
         return (songPoints, artistPoints, songPoints + artistPoints)
+    }
+
+    private func titleCandidates(for title: String) -> [String] {
+        let cleanedTitle = removeParentheses(from: title)
+        var candidates = [cleanedTitle]
+
+        let slashParts = cleanedTitle
+            .components(separatedBy: "/")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { isValidSlashTitleCandidate($0) }
+
+        candidates.append(contentsOf: slashParts)
+
+        var seen = Set<String>()
+        return candidates.filter { candidate in
+            let normalizedCandidate = normalize(candidate)
+            guard !normalizedCandidate.isEmpty, !seen.contains(normalizedCandidate) else {
+                return false
+            }
+
+            seen.insert(normalizedCandidate)
+            return true
+        }
+    }
+
+    private func isValidSlashTitleCandidate(_ title: String) -> Bool {
+        let normalizedTitle = normalize(title)
+        let words = normalizedTitle.split(separator: " ")
+
+        guard !normalizedTitle.isEmpty else {
+            return false
+        }
+
+        if words.count >= 2 {
+            return true
+        }
+
+        return normalizedTitle.count >= 6
     }
 
     private func matchesAnswer(_ answer: String, target: String) -> Bool {
