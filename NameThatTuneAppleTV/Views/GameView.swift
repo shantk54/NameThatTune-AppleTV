@@ -23,13 +23,12 @@ struct GameView: View {
                     .font(.title2)
                     .foregroundStyle(.secondary)
 
-                TextField("Hold Siri button and speak answer", text: $answerText)
-                    .font(.title2)
-                    .textFieldStyle(.plain)
-                    .padding()
-                    .background(.regularMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .frame(width: 700)
+                FocusableTextField(
+                    text: $answerText,
+                    placeholder: "Hold Siri button and speak answer",
+                    becomeFirstResponder: submittedAnswer == nil
+                )
+                .frame(width: 700, height: 70)
 
                 Button("Submit Answer") {
                     submitAnswer()
@@ -91,6 +90,7 @@ struct GameView: View {
         answerText = ""
         submittedAnswer = nil
         roundNumber = nextRoundNumber
+
     }
 }
 
