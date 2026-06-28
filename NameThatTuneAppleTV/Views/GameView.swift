@@ -15,6 +15,7 @@ struct GameView: View {
     @State private var lastArtistPoints = 0
     @State private var isLoadingMusic = true
     @State private var isLoadingPlaylistSongs = false
+    @State private var playlistSearchText = ""
     @State private var isPlayingClip = false
     @State private var isAnswering = false
     @State private var didSetup = false
@@ -30,9 +31,6 @@ struct GameView: View {
             albumArtworkBackground
                 .ignoresSafeArea()
 
-            Color.black
-                .opacity(submittedAnswer == nil ? 1.0 : 0.65)
-                .ignoresSafeArea()
 
             VStack(spacing: 40) {
                 if isLoadingMusic {
@@ -68,10 +66,16 @@ struct GameView: View {
     }
 
     private var playlistPickerView: some View {
-        VStack(spacing: 32) {
-            Text("Choose a Playlist")
-                .font(.largeTitle)
-                .bold()
+        VStack(spacing: 28) {
+            VStack(spacing: 8) {
+                Text("Choose a Playlist")
+                    .font(.largeTitle)
+                    .bold()
+
+                Text("Pick which Apple Music playlist this game should use.")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
 
             if isLoadingPlaylistSongs {
                 ProgressView()
@@ -83,20 +87,56 @@ struct GameView: View {
                     .font(.title2)
                     .foregroundStyle(.secondary)
             } else {
-                ScrollView {
-                    VStack(spacing: 16) {
-                        ForEach(musicService.playlists, id: \.id) { playlist in
-                            Button {
-                                choosePlaylist(playlist)
-                            } label: {
-                                Text(playlist.name)
-                                    .font(.title2)
-                                    .frame(width: 700)
+                VStack(spacing: 18) {
+                    TextField("Search playlists", text: $playlistSearchText)
+                        .font(.title3)
+                        .padding(18)
+                        .frame(width: 720)
+                        .background(.regularMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                    if filteredPlaylists.isEmpty {
+                        Text("No playlists match \"\(playlistSearchText)\".")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ScrollView {
+                            LazyVGrid(
+                                columns: [
+                                    GridItem(.fixed(430), spacing: 24),
+                                    GridItem(.fixed(430), spacing: 24)
+                                ],
+                                spacing: 24
+                            ) {
+                                ForEach(filteredPlaylists, id: \.id) { playlist in
+                                    Button {
+                                        choosePlaylist(playlist)
+                                    } label: {
+                                        VStack(alignment: .leading, spacing: 10) {
+                                            Text(playlist.name)
+                                                .font(.title3)
+                                                .bold()
+                                                .lineLimit(2)
+                                                .multilineTextAlignment(.leading)
+
+                                            Text("Playlist")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .frame(width: 360, height: 100, alignment: .leading)
+                                        .padding(20)
+                                        .background(.regularMaterial)
+                                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
+                            .padding(.horizontal, 40)
+                            .padding(.vertical, 20)
                         }
+                        .frame(maxHeight: 620)
                     }
                 }
-                .frame(maxHeight: 650)
             }
 
             if let errorMessage = musicService.errorMessage {
@@ -105,6 +145,18 @@ struct GameView: View {
                     .foregroundStyle(.red)
                     .multilineTextAlignment(.center)
             }
+        }
+    }
+
+    private var filteredPlaylists: [Playlist] {
+        let cleanedSearch = playlistSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !cleanedSearch.isEmpty else {
+            return musicService.playlists
+        }
+
+        return musicService.playlists.filter { playlist in
+            playlist.name.localizedCaseInsensitiveContains(cleanedSearch)
         }
     }
 
@@ -219,7 +271,15 @@ struct GameView: View {
                 }
             }
         } else {
-            Color.black
+            LinearGradient(
+                colors: [
+                    Color.black,
+                    Color.gray.opacity(0.35),
+                    Color.black
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         }
     }
 
@@ -247,6 +307,7 @@ struct GameView: View {
             currentRound = nil
             answerText = ""
             submittedAnswer = nil
+            playlistSearchText = ""
             lastSongPoints = 0
             lastArtistPoints = 0
             isLoadingPlaylistSongs = false
