@@ -36,11 +36,53 @@ final class AppleMusicService: ObservableObject {
             player.queue = ApplicationMusicPlayer.Queue(for: [song], startingAt: song)
             try await player.play()
         } catch {
-            errorMessage = "Failed to play song: \(error.localizedDescription)"
+            let nsError = error as NSError
+            errorMessage = """
+            Failed to play song:
+            \(nsError.localizedDescription)
+            Domain: \(nsError.domain)
+            Code: \(nsError.code)
+            Info: \(nsError.userInfo)
+            """
         }
     }
 
     func stop() {
         player.stop()
+    }
+    
+    func getGameSongs() -> [GameSong] {
+        songs.map { song in
+            GameSong(
+                id: song.id.rawValue,
+                title: song.title,
+                artist: song.artistName,
+                musicKitSong: song
+            )
+        }
+    }
+
+    func playClip(for gameSong: GameSong, seconds: UInt64 = 8) async {
+        guard let song = gameSong.musicKitSong else {
+            errorMessage = "No MusicKit song available for \(gameSong.title)."
+            return
+        }
+
+        do {
+            player.queue = ApplicationMusicPlayer.Queue(for: [song], startingAt: song)
+            try await player.play()
+
+            try? await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+
+            player.stop()
+        } catch {
+            let nsError = error as NSError
+            errorMessage = """
+            Failed to play clip:
+            \(nsError.localizedDescription)
+            Domain: \(nsError.domain)
+            Code: \(nsError.code)
+            """
+        }
     }
 }
