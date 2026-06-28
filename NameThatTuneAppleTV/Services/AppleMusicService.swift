@@ -13,6 +13,7 @@ final class AppleMusicService: ObservableObject {
 
     private let player = ApplicationMusicPlayer.shared
     private var previewPlayer: AVPlayer?
+    private let recentPlaylistIDsKey = "recentPlaylistIDs"
 
     func requestAuthorization() async {
         authorizationStatus = await MusicAuthorization.request()
@@ -36,7 +37,7 @@ final class AppleMusicService: ObservableObject {
             request.limit = 100
 
             let response = try await request.response()
-            playlists = Array(response.items)
+            playlists = sortPlaylistsByLocalRecency(Array(response.items))
         } catch {
             errorMessage = "Failed to load playlists: \(error.localizedDescription)"
         }
@@ -45,6 +46,7 @@ final class AppleMusicService: ObservableObject {
     func loadSongs(from playlist: Playlist) async {
         do {
             selectedPlaylist = playlist
+            markPlaylistAsRecentlyUsed(playlist)
 
             let detailedPlaylist = try await playlist.with([.tracks])
             let playlistTracks = detailedPlaylist.tracks ?? []
@@ -65,6 +67,40 @@ final class AppleMusicService: ObservableObject {
             }
         } catch {
             errorMessage = "Failed to load songs from \(playlist.name): \(error.localizedDescription)"
+        }
+    }
+
+    private func markPlaylistAsRecentlyUsed(_ playlist: Playlist) {
+        let playlistID = playlist.id.rawValue
+        var recentIDs = UserDefaults.standard.stringArray(forKey: recentPlaylistIDsKey) ?? []
+
+        recentIDs.removeAll { $0 == playlistID }
+        recentIDs.insert(playlistID, at: 0)
+
+        UserDefaults.standard.set(Array(recentIDs.prefix(100)), forKey: recentPlaylistIDsKey)
+        playlists = sortPlaylistsByLocalRecency(playlists)
+    }
+
+    private func sortPlaylistsByLocalRecency(_ playlists: [Playlist]) -> [Playlist] {
+        let recentIDs = UserDefaults.standard.stringArray(forKey: recentPlaylistIDsKey) ?? []
+
+        guard !recentIDs.isEmpty else {
+            return playlists
+        }
+
+        let recentRank = Dictionary(uniqueKeysWithValues: recentIDs.enumerated().map { index, id in
+            (id, index)
+        })
+
+        return playlists.sorted { lhs, rhs in
+            let lhsRank = recentRank[lhs.id.rawValue] ?? Int.max
+            let rhsRank = recentRank[rhs.id.rawValue] ?? Int.max
+
+            if lhsRank != rhsRank {
+                return lhsRank < rhsRank
+            }
+
+            return false
         }
     }
 
