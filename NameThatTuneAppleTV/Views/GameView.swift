@@ -300,11 +300,11 @@ struct GameView: View {
                         ScrollView {
                             LazyVGrid(
                                 columns: [
-                                    GridItem(.fixed(300), spacing: 20),
-                                    GridItem(.fixed(300), spacing: 20),
-                                    GridItem(.fixed(300), spacing: 20)
+                                    GridItem(.fixed(360), spacing: 48),
+                                    GridItem(.fixed(360), spacing: 48),
+                                    GridItem(.fixed(360), spacing: 48)
                                 ],
-                                spacing: 20
+                                spacing: 48
                             ) {
                                 ForEach(filteredPlaylists, id: \.id) { playlist in
                                     Button {
@@ -334,7 +334,7 @@ struct GameView: View {
                                                         .foregroundStyle(.secondary)
                                                 }
                                             }
-                                            .frame(width: 250, height: 150)
+                                            .frame(width: 320, height: 320)
                                             .clipShape(RoundedRectangle(cornerRadius: 14))
 
                                             Text(playlist.name)
@@ -347,7 +347,7 @@ struct GameView: View {
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
-                                        .frame(width: 250, height: 250, alignment: .topLeading)
+                                        .frame(width: 320, height: 420, alignment: .topLeading)
                                         .padding(20)
                                         .background(.regularMaterial)
                                         .clipShape(RoundedRectangle(cornerRadius: 18))
@@ -355,10 +355,10 @@ struct GameView: View {
                                     .buttonStyle(.plain)
                                 }
                             }
-                            .padding(.horizontal, 40)
-                            .padding(.vertical, 20)
+                            .padding(.horizontal, 64)
+                            .padding(.vertical, 36)
                         }
-                        .frame(maxHeight: 620)
+                        .frame(maxHeight: 700)
                     }
                 }
             }
