@@ -28,6 +28,7 @@ struct GameView: View {
     @State private var isPlayingClip = false
     @State private var isAnswering = false
     @State private var didSetup = false
+    @State private var revealPlaybackTask: Task<Void, Never>?
 
     init(albumArtworks: [Artwork] = []) {
         self.albumArtworks = albumArtworks
@@ -172,6 +173,8 @@ struct GameView: View {
             Text("Your current game progress will be lost.")
         }
         .onDisappear {
+            revealPlaybackTask?.cancel()
+            revealPlaybackTask = nil
             musicService.stop()
         }
         .task {
@@ -182,14 +185,22 @@ struct GameView: View {
     }
 
     private var gameOptionsView: some View {
-        VStack(spacing: 64) {
+        VStack(spacing: 34) {
             VStack(spacing: 10) {
                 Text("Select Game Settings")
                     .font(.largeTitle)
                     .bold()
             }
+            .padding(.horizontal, 44)
+            .padding(.vertical, 14)
+            .background(.black.opacity(0.58))
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(.white.opacity(0.12), lineWidth: 1)
+            )
 
-            VStack(spacing: 28) {
+            VStack(spacing: 16) {
                 Text("Players:")
                     .font(.title2)
                     .bold()
@@ -214,9 +225,17 @@ struct GameView: View {
                     }
                 }
             }
+            .padding(.horizontal, 44)
+            .padding(.vertical, 18)
+            .background(.black.opacity(0.58))
+            .clipShape(RoundedRectangle(cornerRadius: 28))
+            .overlay(
+                RoundedRectangle(cornerRadius: 28)
+                    .stroke(.white.opacity(0.12), lineWidth: 1)
+            )
 
             if selectedPlayerCount != nil {
-                VStack(spacing: 28) {
+                VStack(spacing: 16) {
                     Text("Difficulty:")
                         .font(.title2)
                         .bold()
@@ -240,11 +259,19 @@ struct GameView: View {
                         }
                     }
                 }
+                .padding(.horizontal, 44)
+                .padding(.vertical, 18)
+                .background(.black.opacity(0.58))
+                .clipShape(RoundedRectangle(cornerRadius: 28))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28)
+                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                )
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
             if selectedDifficulty != nil {
-                VStack(spacing: 28) {
+                VStack(spacing: 16) {
                     Text("Rounds:")
                         .font(.title2)
                         .bold()
@@ -262,6 +289,14 @@ struct GameView: View {
                         }
                     }
                 }
+                .padding(.horizontal, 44)
+                .padding(.vertical, 18)
+                .background(.black.opacity(0.58))
+                .clipShape(RoundedRectangle(cornerRadius: 28))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28)
+                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                )
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
@@ -269,18 +304,17 @@ struct GameView: View {
                 Text("Continue by choosing a playlist.")
                     .font(.headline)
                     .foregroundStyle(.secondary)
+                    .padding(.horizontal, 34)
+                    .padding(.vertical, 18)
+                    .background(.black.opacity(0.58))
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18)
+                            .stroke(.white.opacity(0.12), lineWidth: 1)
+                    )
             }
         }
-        .padding(.horizontal, 56)
-        .padding(.vertical, 42)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 34))
-        .overlay(
-            RoundedRectangle(cornerRadius: 34)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
-        )
         .animation(.easeInOut(duration: 0.25), value: selectedPlayerCount)
-        .animation(.easeInOut(duration: 0.25), value: selectedDifficulty)
     }
 
     private func optionButton(title: String, subtitle: String, isSelected: Bool, fixedWidth: CGFloat? = nil, action: @escaping () -> Void) -> some View {
@@ -300,8 +334,8 @@ struct GameView: View {
                 }
             }
             .padding(.horizontal, 34)
-            .padding(.vertical, 18)
-            .frame(minWidth: fixedWidth ?? 170, minHeight: 125)
+            .padding(.vertical, 12)
+            .frame(minWidth: fixedWidth ?? 170, minHeight: 96)
             .background(isSelected ? .thinMaterial : .regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 20))
             .overlay(
@@ -750,6 +784,8 @@ struct GameView: View {
     }
 
     private func quitCurrentGame() {
+        revealPlaybackTask?.cancel()
+        revealPlaybackTask = nil
         musicService.stop()
         showQuitGameConfirmation = false
         currentRound = nil
@@ -829,6 +865,9 @@ struct GameView: View {
             finishGame()
             return
         }
+        revealPlaybackTask?.cancel()
+        revealPlaybackTask = nil
+        musicService.stop()
         let nextRoundNumber = roundNumber + 1
         let engine = GameEngine(songs: gameSongs.isEmpty ? nil : gameSongs)
         let newRound = engine.generateRound(number: nextRoundNumber)
@@ -879,7 +918,8 @@ struct GameView: View {
                 playerScores[currentPlayerIndex] += points.total
             }
 
-            Task {
+            revealPlaybackTask?.cancel()
+            revealPlaybackTask = Task {
                 await musicService.playPreviewClip(for: currentRound.correctSong, seconds: 30)
             }
         }
@@ -891,6 +931,8 @@ struct GameView: View {
 
 
     private func finishGame() {
+        revealPlaybackTask?.cancel()
+        revealPlaybackTask = nil
         musicService.stop()
         currentRound = nil
         submittedAnswer = nil
@@ -901,6 +943,8 @@ struct GameView: View {
     }
 
     private func resetGame() {
+        revealPlaybackTask?.cancel()
+        revealPlaybackTask = nil
         musicService.stop()
         gameSongs = []
         currentRound = nil

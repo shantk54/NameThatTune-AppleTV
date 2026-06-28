@@ -57,13 +57,13 @@ struct ContentView: View {
                         .font(.system(size: 76, weight: .heavy, design: .rounded))
                         .shadow(radius: 18)
 
-                    Text("Guess the song. Beat your friends.")
+                    Text("Guess The Song. Beat Your Friends.")
                         .font(.title2)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 56)
                 .padding(.vertical, 34)
-                .background(.regularMaterial)
+                .background(.black.opacity(0.75))
                 .clipShape(RoundedRectangle(cornerRadius: 32))
 
                 NavigationLink {
@@ -118,14 +118,10 @@ struct ContentView: View {
 
 struct AlbumWallView: View {
     let artworks: [Artwork]
-    @State private var shuffledArtworks: [Artwork] = []
 
     private let columnCount = 9
     private let rowCount = 5
 
-    private var displayedArtworks: [Artwork] {
-        shuffledArtworks.isEmpty ? artworks : shuffledArtworks
-    }
 
     private var coverCount: Int {
         columnCount * rowCount
@@ -149,18 +145,12 @@ struct AlbumWallView: View {
                 height: coverSize * CGFloat(rowCount)
             )
             .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-            .onAppear {
-                shuffledArtworks = artworks.shuffled()
-            }
-            .onChange(of: artworks.count) { _, _ in
-                shuffledArtworks = artworks.shuffled()
-            }
         }
     }
 
     @ViewBuilder
     private func albumCoverTile(for index: Int, coverSize: CGFloat) -> some View {
-        let artwork = displayedArtworks[index % displayedArtworks.count]
+        let artwork = artworks[index % artworks.count]
 
         ZStack {
             Color.black
