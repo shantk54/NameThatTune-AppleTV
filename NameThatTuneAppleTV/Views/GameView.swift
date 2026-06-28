@@ -344,6 +344,19 @@ struct GameView: View {
             return true
         }
 
+        let phoneticAnswer = phoneticNormalize(answer)
+        let phoneticTarget = phoneticNormalize(target)
+        let compactPhoneticAnswer = phoneticAnswer.replacingOccurrences(of: " ", with: "")
+        let compactPhoneticTarget = phoneticTarget.replacingOccurrences(of: " ", with: "")
+
+        if phoneticAnswer.contains(phoneticTarget) || compactPhoneticAnswer.contains(compactPhoneticTarget) {
+            return true
+        }
+
+        if isCloseEnough(compactPhoneticAnswer, compactPhoneticTarget) {
+            return true
+        }
+
         return fuzzyPhraseMatch(answer: normalizedAnswer, target: normalizedTarget)
     }
 
@@ -452,6 +465,66 @@ struct GameView: View {
 
     private func compactNormalize(_ text: String) -> String {
         normalize(text).replacingOccurrences(of: " ", with: "")
+    }
+
+    private func phoneticNormalize(_ text: String) -> String {
+        normalize(text)
+            .split(separator: " ")
+            .map { phoneticWord(String($0)) }
+            .joined(separator: " ")
+    }
+
+    private func phoneticWord(_ word: String) -> String {
+        var result = word
+
+        result = result.replacingOccurrences(of: "augh", with: "o")
+        result = result.replacingOccurrences(of: "ough", with: "o")
+        result = result.replacingOccurrences(of: "gh", with: "")
+        result = result.replacingOccurrences(of: "ph", with: "f")
+        result = result.replacingOccurrences(of: "ck", with: "k")
+        result = result.replacingOccurrences(of: "qu", with: "k")
+        result = result.replacingOccurrences(of: "oa", with: "o")
+        result = result.replacingOccurrences(of: "ow", with: "o")
+        result = result.replacingOccurrences(of: "x", with: "ks")
+        result = result.replacingOccurrences(of: "z", with: "s")
+        result = result.replacingOccurrences(of: "c", with: "k")
+
+        if result.hasSuffix("er") {
+            result.removeLast(2)
+            result += "a"
+        }
+
+        if result.hasSuffix("ah") {
+            result.removeLast(2)
+            result += "a"
+        }
+
+        if result.hasSuffix("ie") {
+            result.removeLast(2)
+            result += "i"
+        }
+
+        result = collapseRepeatedLetters(result)
+
+        if result.hasSuffix("l"), let previousCharacter = result.dropLast().last, "aeiou".contains(previousCharacter) {
+            result.removeLast()
+        }
+
+        return result
+    }
+
+    private func collapseRepeatedLetters(_ text: String) -> String {
+        var collapsed = ""
+        var previous: Character?
+
+        for character in text {
+            if character != previous {
+                collapsed.append(character)
+            }
+            previous = character
+        }
+
+        return collapsed
     }
 }
 

@@ -1,4 +1,4 @@
-internal import Foundation
+import Foundation
 
 class GameEngine {
     private var songs: [GameSong]

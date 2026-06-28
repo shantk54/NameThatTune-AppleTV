@@ -107,6 +107,9 @@
 			);
 			mainGroup = CE7149412FF1726C00A15425;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CE6409712FF18E450036B364 /* XCRemoteSwiftPackageReference "DoubleMetaphoneSwift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CE71494B2FF1726C00A15425 /* Products */;
 			projectDirPath = "";
@@ -345,6 +348,17 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CE6409712FF18E450036B364 /* XCRemoteSwiftPackageReference "DoubleMetaphoneSwift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ZebulonRouseFrantzich/DoubleMetaphoneSwift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.0.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = CE7149422FF1726C00A15425 /* Project object */;
 }

@@ -1,4 +1,4 @@
-internal import Foundation
+import Foundation
 
 struct GameRound {
     let number: Int
