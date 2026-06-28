@@ -9,6 +9,12 @@ struct GameView: View {
     @State private var roundNumber = 0
     @State private var score = 0
 
+    enum FocusTarget: Hashable {
+        case nextRoundButton
+    }
+
+    @FocusState private var focusedControl: FocusTarget?
+
     var body: some View {
         VStack(spacing: 40) {
             if let currentRound {
@@ -23,15 +29,25 @@ struct GameView: View {
                     .font(.title2)
                     .foregroundStyle(.secondary)
 
-                FocusableTextField(
-                    text: $answerText,
-                    placeholder: "Hold Siri button and speak answer",
-                    becomeFirstResponder: submittedAnswer == nil,
-                    onSubmit: {
-                        submitAnswer()
-                    }
-                )
-                .frame(width: 700, height: 70)
+                if submittedAnswer == nil {
+                    FocusableTextField(
+                        text: $answerText,
+                        placeholder: "Hold Siri button and speak answer",
+                        becomeFirstResponder: true,
+                        onSubmit: {
+                            submitAnswer()
+                        }
+                    )
+                    .frame(width: 700, height: 70)
+                    .id(currentRound.number)
+                } else {
+                    Text(answerText)
+                        .font(.title2)
+                        .padding()
+                        .frame(width: 700, height: 70)
+                        .background(.regularMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
 
                 if let submittedAnswer {
                     Text(isCorrect(submittedAnswer, currentRound: currentRound)
@@ -44,6 +60,7 @@ struct GameView: View {
                         startNewRound()
                     }
                     .font(.title2)
+                    .focused($focusedControl, equals: .nextRoundButton)
                 }
             }
         }
@@ -64,6 +81,10 @@ struct GameView: View {
 
         if let currentRound, isCorrect(cleaned, currentRound: currentRound) {
             score += 1
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            focusedControl = .nextRoundButton
         }
     }
 
@@ -88,6 +109,7 @@ struct GameView: View {
         let nextRoundNumber = roundNumber + 1
         let newRound = engine.generateRound(number: nextRoundNumber)
 
+        focusedControl = nil
         currentRound = newRound
         answerText = ""
         submittedAnswer = nil
