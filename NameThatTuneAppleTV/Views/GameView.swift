@@ -224,7 +224,6 @@ struct GameView: View {
                                 focusedControl = .difficulty(.easy)
                             }
                         }
-                        // .focusable(selectedPlayerCount == nil) // REMOVED
                         .focused($focusedControl, equals: .playerCount(playerCount))
                     }
                 }
@@ -259,7 +258,6 @@ struct GameView: View {
                                     focusedControl = .roundCount(3)
                                 }
                             }
-                            // .focusable(selectedPlayerCount != nil && selectedDifficulty == nil) // REMOVED
                             .focused($focusedControl, equals: .difficulty(difficulty))
                         }
                     }
@@ -290,7 +288,6 @@ struct GameView: View {
                             ) {
                                 selectedRoundCount = roundCount
                             }
-                            // .focusable(selectedDifficulty != nil && selectedRoundCount == nil) // REMOVED
                             .focused($focusedControl, equals: .roundCount(roundCount))
                         }
                     }
@@ -882,8 +879,6 @@ struct GameView: View {
     private func choosePlaylist(_ playlist: Playlist) {
         guard !isLoadingPlaylistSongs else { return }
 
-        onStartGame()
-        hasStartedGameSession = true
         isLoadingPlaylistSongs = true
         musicService.errorMessage = nil
 
@@ -908,9 +903,18 @@ struct GameView: View {
 
             if gameSongs.isEmpty {
                 musicService.errorMessage = "No playable songs found in \(playlist.name)."
-            } else {
-                startNewRound()
+                return
             }
+
+            let requiredSongCount = totalTurnCount
+            guard gameSongs.count >= requiredSongCount else {
+                musicService.errorMessage = "This playlist only has \(gameSongs.count) recognized song\(gameSongs.count == 1 ? "" : "s"), but this game needs \(requiredSongCount). Choose a playlist with more Apple Music-recognized songs or lower the player/round count."
+                return
+            }
+
+            onStartGame()
+            hasStartedGameSession = true
+            startNewRound()
         }
     }
 

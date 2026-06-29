@@ -88,7 +88,7 @@ final class AppleMusicService: ObservableObject {
             print("AppleMusicService: playable songs found = \(songs.count)")
 
             if songs.isEmpty {
-                errorMessage = "No playable songs found in \(playlist.name)."
+                errorMessage = "No songs found in \(playlist.name)."
             } else {
                 errorMessage = nil
             }
