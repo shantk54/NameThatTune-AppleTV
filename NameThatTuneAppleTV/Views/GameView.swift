@@ -392,12 +392,12 @@ struct GameView: View {
                         ScrollView {
                             LazyVGrid(
                                 columns: [
-                                    GridItem(.fixed(360), spacing: 32),
-                                    GridItem(.fixed(360), spacing: 32),
-                                    GridItem(.fixed(360), spacing: 32),
-                                    GridItem(.fixed(360), spacing: 32)
+                                    GridItem(.fixed(360), spacing: 56),
+                                    GridItem(.fixed(360), spacing: 56),
+                                    GridItem(.fixed(360), spacing: 56),
+                                    GridItem(.fixed(360), spacing: 56)
                                 ],
-                                spacing: 32
+                                spacing: 48
                             ) {
                                 ForEach(filteredPlaylists, id: \.id) { playlist in
                                     Button {
@@ -439,7 +439,7 @@ struct GameView: View {
                                     .buttonStyle(.plain)
                                 }
                             }
-                            .padding(.horizontal, 32)
+                            .padding(.horizontal, 48)
                             .padding(.vertical, 28)
                         }
                         .frame(maxHeight: 700)
