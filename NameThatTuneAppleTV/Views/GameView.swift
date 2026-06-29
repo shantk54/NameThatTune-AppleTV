@@ -224,6 +224,7 @@ struct GameView: View {
                                 focusedControl = .difficulty(.easy)
                             }
                         }
+                        // .focusable(selectedPlayerCount == nil) // REMOVED
                         .focused($focusedControl, equals: .playerCount(playerCount))
                     }
                 }
@@ -258,6 +259,7 @@ struct GameView: View {
                                     focusedControl = .roundCount(3)
                                 }
                             }
+                            // .focusable(selectedPlayerCount != nil && selectedDifficulty == nil) // REMOVED
                             .focused($focusedControl, equals: .difficulty(difficulty))
                         }
                     }
@@ -288,6 +290,7 @@ struct GameView: View {
                             ) {
                                 selectedRoundCount = roundCount
                             }
+                            // .focusable(selectedDifficulty != nil && selectedRoundCount == nil) // REMOVED
                             .focused($focusedControl, equals: .roundCount(roundCount))
                         }
                     }
@@ -318,6 +321,9 @@ struct GameView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: selectedPlayerCount)
+        .onChange(of: focusedControl) { newFocus in
+            keepFocusInCurrentSettingsSection(newFocus)
+        }
     }
 
     private func optionButton(title: String, subtitle: String, isSelected: Bool, fixedWidth: CGFloat? = nil, action: @escaping () -> Void) -> some View {
@@ -747,6 +753,48 @@ struct GameView: View {
         }
     }
     
+    private func keepFocusInCurrentSettingsSection(_ newFocus: FocusTarget?) {
+        guard currentRound == nil,
+              !isGameOver,
+              selectedPlayerCount == nil || selectedDifficulty == nil || selectedRoundCount == nil else {
+            return
+        }
+
+        guard let newFocus else {
+            restoreCurrentSettingsFocus()
+            return
+        }
+
+        switch newFocus {
+        case .playerCount:
+            if selectedPlayerCount != nil {
+                restoreCurrentSettingsFocus()
+            }
+        case .difficulty:
+            if selectedPlayerCount == nil || selectedDifficulty != nil {
+                restoreCurrentSettingsFocus()
+            }
+        case .roundCount:
+            if selectedDifficulty == nil || selectedRoundCount != nil {
+                restoreCurrentSettingsFocus()
+            }
+        case .nextRoundButton:
+            restoreCurrentSettingsFocus()
+        }
+    }
+
+    private func restoreCurrentSettingsFocus() {
+        DispatchQueue.main.async {
+            if selectedPlayerCount == nil {
+                focusedControl = .playerCount(1)
+            } else if selectedDifficulty == nil {
+                focusedControl = .difficulty(.easy)
+            } else if selectedRoundCount == nil {
+                focusedControl = .roundCount(3)
+            }
+        }
+    }
+
     private func handleBackButton() {
         guard !isLoadingMusic else {
             return
@@ -1224,3 +1272,4 @@ struct GameView: View {
     GameView()
 }
 
+ 
