@@ -67,7 +67,9 @@ struct ContentView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 32))
 
                 NavigationLink {
-                    GameView(albumArtworks: albumWallService.albumArtworks)
+                    GameView(albumArtworks: albumWallService.albumArtworks) {
+                        albumWallService.stopLobbyMusic()
+                    }
                 } label: {
                     Text("Start Game")
                         .font(.title2)
@@ -75,6 +77,11 @@ struct ContentView: View {
                         .padding(.horizontal, 54)
                         .padding(.vertical, 22)
                 }
+            }
+        }
+        .onAppear {
+            Task {
+                await albumWallService.playRandomLobbyMusic()
             }
         }
     }

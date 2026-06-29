@@ -4,6 +4,7 @@ import MusicKit
 
 struct GameView: View {
     let albumArtworks: [Artwork]
+    let onStartGame: () -> Void
     @Environment(\.dismiss) private var dismiss
     @StateObject private var musicService = AppleMusicService()
 
@@ -32,8 +33,9 @@ struct GameView: View {
     @State private var revealPlaybackTask: Task<Void, Never>?
     @State private var clipPlaybackTask: Task<Void, Never>?
 
-    init(albumArtworks: [Artwork] = []) {
+    init(albumArtworks: [Artwork] = [], onStartGame: @escaping () -> Void = {}) {
         self.albumArtworks = albumArtworks
+        self.onStartGame = onStartGame
     }
 
     enum FocusTarget: Hashable {
@@ -390,11 +392,12 @@ struct GameView: View {
                         ScrollView {
                             LazyVGrid(
                                 columns: [
-                                    GridItem(.fixed(360), spacing: 48),
-                                    GridItem(.fixed(360), spacing: 48),
-                                    GridItem(.fixed(360), spacing: 48)
+                                    GridItem(.fixed(360), spacing: 32),
+                                    GridItem(.fixed(360), spacing: 32),
+                                    GridItem(.fixed(360), spacing: 32),
+                                    GridItem(.fixed(360), spacing: 32)
                                 ],
-                                spacing: 48
+                                spacing: 32
                             ) {
                                 ForEach(filteredPlaylists, id: \.id) { playlist in
                                     Button {
@@ -406,8 +409,9 @@ struct GameView: View {
                                                     .fill(.thinMaterial)
 
                                                 if let artwork = playlist.artwork {
-                                                    ArtworkImage(artwork, width: 500, height: 500)
-                                                        .scaledToFill()
+                                                    ArtworkImage(artwork, width: 320, height: 320)
+                                                        .scaledToFit()
+                                                        .frame(width: 320, height: 320)
                                                 } else {
                                                     Image(systemName: "music.note.list")
                                                         .font(.largeTitle)
@@ -428,15 +432,15 @@ struct GameView: View {
                                                 .foregroundStyle(.secondary)
                                         }
                                         .frame(width: 320, height: 420, alignment: .topLeading)
-                                        .padding(20)
-                                        .background(.regularMaterial)
+                                        .padding(16)
+                                        .background(.black.opacity(0.58))
                                         .clipShape(RoundedRectangle(cornerRadius: 18))
                                     }
                                     .buttonStyle(.plain)
                                 }
                             }
-                            .padding(.horizontal, 64)
-                            .padding(.vertical, 36)
+                            .padding(.horizontal, 32)
+                            .padding(.vertical, 28)
                         }
                         .frame(maxHeight: 700)
                     }
@@ -574,8 +578,9 @@ struct GameView: View {
                 }
             }
 
-            Button("Play Again") {
+            Button("Back to Title") {
                 resetGame()
+                dismiss()
             }
             .font(.title2)
         }
@@ -829,6 +834,7 @@ struct GameView: View {
     private func choosePlaylist(_ playlist: Playlist) {
         guard !isLoadingPlaylistSongs else { return }
 
+        onStartGame()
         hasStartedGameSession = true
         isLoadingPlaylistSongs = true
         musicService.errorMessage = nil

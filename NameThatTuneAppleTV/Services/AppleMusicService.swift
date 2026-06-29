@@ -15,6 +15,7 @@ final class AppleMusicService: ObservableObject {
         ApplicationMusicPlayer.shared
     }
     private var previewPlayer: AVPlayer?
+    private let previewClipVolume: Float = 0.25
     private let recentPlaylistIDsKey = "recentPlaylistIDs"
 
     func requestAuthorization() async {
@@ -219,6 +220,7 @@ final class AppleMusicService: ObservableObject {
 
             previewPlayer?.pause()
             previewPlayer = AVPlayer(url: previewURL)
+            previewPlayer?.volume = previewClipVolume
             previewPlayer?.play()
 
             try? await Task.sleep(nanoseconds: seconds * 1_000_000_000)
