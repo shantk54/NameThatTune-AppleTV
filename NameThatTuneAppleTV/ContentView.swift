@@ -4,6 +4,7 @@ import MusicKit
 struct ContentView: View {
     @StateObject private var albumWallService = AlbumWallService()
     @State private var didStartLoadingAlbumWall = false
+    @State private var isShowingGame = false
 
     var body: some View {
         NavigationStack {
@@ -66,9 +67,10 @@ struct ContentView: View {
                 .background(.black.opacity(0.75))
                 .clipShape(RoundedRectangle(cornerRadius: 32))
 
-                NavigationLink {
-                    GameView(albumArtworks: albumWallService.albumArtworks) {
-                        albumWallService.stopLobbyMusic()
+                Button {
+                    albumWallService.refreshAlbumWallArtwork()
+                    DispatchQueue.main.async {
+                        isShowingGame = true
                     }
                 } label: {
                     Text("Start Game")
@@ -78,6 +80,20 @@ struct ContentView: View {
                         .padding(.vertical, 22)
                 }
             }
+        }
+        .navigationDestination(isPresented: $isShowingGame) {
+            GameView(
+                albumArtworks: albumWallService.albumArtworks,
+                onStartGame: {
+                    albumWallService.stopLobbyMusic()
+                },
+                onReturnToTitle: {
+                    albumWallService.refreshAlbumWallArtwork()
+                    Task {
+                        await albumWallService.playRandomLobbyMusic()
+                    }
+                }
+            )
         }
         .onAppear {
             Task {

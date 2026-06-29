@@ -5,10 +5,12 @@ import MusicKit
 struct GameView: View {
     let albumArtworks: [Artwork]
     let onStartGame: () -> Void
+    let onReturnToTitle: () -> Void
     @Environment(\.dismiss) private var dismiss
     @StateObject private var musicService = AppleMusicService()
 
     @State private var gameSongs: [GameSong] = []
+    @State private var usedSongIDs = Set<String>()
     @State private var currentRound: GameRound?
     @State private var answerText = ""
     @State private var submittedAnswer: String?
@@ -32,10 +34,17 @@ struct GameView: View {
     @State private var didSetup = false
     @State private var revealPlaybackTask: Task<Void, Never>?
     @State private var clipPlaybackTask: Task<Void, Never>?
+    @State private var playbackSessionID = UUID()
+    @State private var displayedAlbumArtworks: [Artwork] = []
 
-    init(albumArtworks: [Artwork] = [], onStartGame: @escaping () -> Void = {}) {
+    init(
+        albumArtworks: [Artwork] = [],
+        onStartGame: @escaping () -> Void = {},
+        onReturnToTitle: @escaping () -> Void = {}
+    ) {
         self.albumArtworks = albumArtworks
         self.onStartGame = onStartGame
+        self.onReturnToTitle = onReturnToTitle
     }
 
     enum FocusTarget: Hashable {
@@ -109,8 +118,8 @@ struct GameView: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            if shouldShowAlbumWallBackground, !albumArtworks.isEmpty {
-                AlbumWallView(artworks: albumArtworks)
+            if shouldShowAlbumWallBackground, !displayedAlbumArtworks.isEmpty {
+                AlbumWallView(artworks: displayedAlbumArtworks)
                     .ignoresSafeArea()
 
                 LinearGradient(
@@ -176,6 +185,9 @@ struct GameView: View {
             }
         } message: {
             Text("Your current game progress will be lost.")
+        }
+        .onAppear {
+            refreshDisplayedAlbumWall()
         }
         .onDisappear {
             stopAllPlayback()
@@ -527,7 +539,7 @@ struct GameView: View {
                         if isAnswering {
                             FocusableTextField(
                                 text: $answerText,
-                                placeholder: "Song title and artist",
+                                placeholder: "Enter Song Title and Artist",
                                 becomeFirstResponder: true,
                                 onSubmit: {
                                     submitAnswer()
@@ -585,11 +597,6 @@ struct GameView: View {
                     Text(isPlayingClip ? "Mystery Song Playing" : "Ready for Your Answer")
                         .font(.system(size: 46, weight: .heavy, design: .rounded))
                         .lineLimit(1)
-
-                    Text(isPlayingClip ? "Name the tune before the reveal." : "Say your best guess out loud.")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
                 }
             }
             .padding(44)
@@ -652,6 +659,8 @@ struct GameView: View {
 
             Button("Back to Title") {
                 resetGame()
+                refreshDisplayedAlbumWall()
+                onReturnToTitle()
                 dismiss()
             }
             .font(.title2)
@@ -667,7 +676,7 @@ struct GameView: View {
                         .padding(.horizontal, 18)
                         .padding(.vertical, 8)
                         .background(.regularMaterial)
-                        .clipShape(Capsule())
+                         .clipShape(Capsule())
 
                     Text("Player \(currentPlayerNumber)'s Reveal")
                         .font(.title3)
@@ -788,6 +797,10 @@ struct GameView: View {
     private var shouldShowAlbumWallBackground: Bool {
         !isLoadingMusic && !isGameOver && currentRound == nil && (selectedPlayerCount == nil || selectedRoundCount == nil || selectedDifficulty == nil)
     }
+    
+    private func refreshDisplayedAlbumWall() {
+        displayedAlbumArtworks = albumArtworks.shuffled()
+    }
 
     @ViewBuilder
     private var albumArtworkBackground: some View {
@@ -872,11 +885,12 @@ struct GameView: View {
         }
 
         if selectedRoundCount != nil {
+            let difficultyToFocus = selectedDifficulty ?? .easy
             selectedRoundCount = nil
+            selectedDifficulty = nil
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                if let selectedDifficulty {
-                    focusedControl = .difficulty(selectedDifficulty)
-                }
+                focusedControl = .difficulty(difficultyToFocus)
             }
         } else if selectedDifficulty != nil {
             selectedDifficulty = nil
@@ -894,11 +908,18 @@ struct GameView: View {
     }
 
     private func stopAllPlayback() {
+        let hadActivePlayback = clipPlaybackTask != nil || revealPlaybackTask != nil || isPlayingClip
+
+        playbackSessionID = UUID()
         clipPlaybackTask?.cancel()
         clipPlaybackTask = nil
         revealPlaybackTask?.cancel()
         revealPlaybackTask = nil
-        musicService.stop()
+
+        if hadActivePlayback {
+            musicService.stop()
+        }
+
         isPlayingClip = false
     }
 
@@ -909,6 +930,7 @@ struct GameView: View {
         answerText = ""
         submittedAnswer = nil
         roundNumber = 0
+        usedSongIDs.removeAll()
         score = 0
         playerScores = []
         selectedPlayerCount = nil
@@ -920,6 +942,8 @@ struct GameView: View {
         lastArtistPoints = 0
         isPlayingClip = false
         isAnswering = false
+        refreshDisplayedAlbumWall()
+        onReturnToTitle()
         dismiss()
     }
 
@@ -957,6 +981,7 @@ struct GameView: View {
 
             score = 0
             roundNumber = 0
+            usedSongIDs.removeAll()
             currentRound = nil
             answerText = ""
             submittedAnswer = nil
@@ -994,8 +1019,16 @@ struct GameView: View {
         }
         stopAllPlayback()
         let nextRoundNumber = roundNumber + 1
-        let engine = GameEngine(songs: gameSongs.isEmpty ? nil : gameSongs)
+        let availableSongs = gameSongs.filter { !usedSongIDs.contains($0.id) }
+
+        guard !availableSongs.isEmpty else {
+            finishGame()
+            return
+        }
+
+        let engine = GameEngine(songs: availableSongs)
         let newRound = engine.generateRound(number: nextRoundNumber)
+        usedSongIDs.insert(newRound.correctSong.id)
 
         focusedControl = nil
         currentRound = newRound
@@ -1007,19 +1040,20 @@ struct GameView: View {
         isPlayingClip = true
         isAnswering = false
 
+        let sessionID = playbackSessionID
         clipPlaybackTask = Task {
-            await playClipThenAnswer(for: newRound.correctSong)
+            await playClipThenAnswer(for: newRound.correctSong, sessionID: sessionID)
         }
     }
 
-    private func playClipThenAnswer(for song: GameSong) async {
+    private func playClipThenAnswer(for song: GameSong, sessionID: UUID) async {
         if song.musicKitSong != nil {
             await musicService.playPreviewClip(for: song, seconds: selectedDifficulty?.clipSeconds ?? 15)
         } else {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
         }
 
-        guard !Task.isCancelled else {
+        guard !Task.isCancelled, sessionID == playbackSessionID else {
             return
         }
 
@@ -1049,8 +1083,20 @@ struct GameView: View {
             }
 
             stopAllPlayback()
+            let sessionID = playbackSessionID
+            let revealSong = currentRound.correctSong
             revealPlaybackTask = Task {
-                await musicService.playPreviewClip(for: currentRound.correctSong, seconds: 30)
+                guard !Task.isCancelled, sessionID == playbackSessionID else {
+                    return
+                }
+
+                await musicService.playPreviewClip(for: revealSong, seconds: 30)
+
+                guard !Task.isCancelled, sessionID == playbackSessionID else {
+                    return
+                }
+
+                revealPlaybackTask = nil
             }
         }
 
@@ -1073,6 +1119,7 @@ struct GameView: View {
     private func resetGame() {
         stopAllPlayback()
         gameSongs = []
+        usedSongIDs.removeAll()
         currentRound = nil
         answerText = ""
         submittedAnswer = nil
@@ -1088,6 +1135,7 @@ struct GameView: View {
         lastArtistPoints = 0
         isPlayingClip = false
         isAnswering = false
+        refreshDisplayedAlbumWall()
     }
 
     private func scoreAnswer(_ answer: String, currentRound: GameRound) -> (song: Int, artist: Int, total: Int) {

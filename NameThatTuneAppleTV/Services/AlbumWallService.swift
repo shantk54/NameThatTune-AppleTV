@@ -10,6 +10,7 @@ final class AlbumWallService: ObservableObject {
     @Published var didFinishLoading = false
     @Published var errorMessage: String?
 
+    private var libraryAlbumsWithArtwork: [Album] = []
     private var albumWallAlbums: [Album] = []
     private var isLobbyMusicPlaying = false
     private var lobbyPlayer: ApplicationMusicPlayer { ApplicationMusicPlayer.shared }
@@ -25,6 +26,7 @@ final class AlbumWallService: ObservableObject {
 
         guard authorizationStatus == .authorized else {
             print("AlbumWallService: not authorized, stopping album wall load")
+            libraryAlbumsWithArtwork = []
             albumWallAlbums = []
             albumArtworks = []
             isLobbyMusicPlaying = false
@@ -40,11 +42,12 @@ final class AlbumWallService: ObservableObject {
 
             let response = try await request.response()
             let albums = Array(response.items)
-            let selectedAlbums = Array(uniqueAlbumsWithArtwork(from: albums).shuffled().prefix(targetArtworkCount))
+            libraryAlbumsWithArtwork = uniqueAlbumsWithArtwork(from: albums)
+            let selectedAlbums = Array(libraryAlbumsWithArtwork.shuffled().prefix(targetArtworkCount))
             let randomizedArtworks = selectedAlbums.compactMap(\.artwork)
 
             print("AlbumWallService: albums returned = \(albums.count)")
-            print("AlbumWallService: albums with artwork found = \(uniqueAlbumsWithArtwork(from: albums).count)")
+            print("AlbumWallService: albums with artwork found = \(libraryAlbumsWithArtwork.count)")
             print("AlbumWallService: selected lobby/wall albums = \(selectedAlbums.count)")
             print("AlbumWallService: randomized artworks displayed = \(randomizedArtworks.count)")
             if let firstArtworkURL = randomizedArtworks.first?.url(width: 400, height: 400) {
@@ -61,6 +64,7 @@ final class AlbumWallService: ObservableObject {
             didFinishLoading = true
         } catch {
             print("AlbumWallService: failed to load album artwork: \(error.localizedDescription)")
+            libraryAlbumsWithArtwork = []
             albumWallAlbums = []
             albumArtworks = []
             isLobbyMusicPlaying = false
@@ -68,6 +72,22 @@ final class AlbumWallService: ObservableObject {
             didFinishLoading = true
             errorMessage = "Failed to load album artwork: \(error.localizedDescription)"
         }
+    }
+
+    func refreshAlbumWallArtwork(targetArtworkCount: Int = 45) {
+        guard !libraryAlbumsWithArtwork.isEmpty else {
+            print("AlbumWallService: cannot refresh album wall because no cached albums are available")
+            return
+        }
+
+        let selectedAlbums = Array(libraryAlbumsWithArtwork.shuffled().prefix(targetArtworkCount))
+        let randomizedArtworks = selectedAlbums.compactMap(\.artwork)
+
+        albumWallAlbums = selectedAlbums
+        albumArtworks = randomizedArtworks
+
+        print("AlbumWallService: refreshed album wall albums = \(selectedAlbums.count)")
+        print("AlbumWallService: refreshed album wall artworks = \(randomizedArtworks.count)")
     }
 
     func playRandomLobbyMusic() async {
