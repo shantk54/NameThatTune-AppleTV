@@ -476,56 +476,125 @@ struct GameView: View {
             if submittedAnswer != nil {
                 EmptyView()
             } else {
-                VStack(spacing: 32) {
-                    Text("Round \(displayedRoundNumber) of \(selectedRoundCount ?? 0)")
-                        .font(.largeTitle)
-                        .bold()
+                VStack(spacing: 34) {
+                    HStack(alignment: .center) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Round \(displayedRoundNumber) of \(selectedRoundCount ?? 0)")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
 
-                    Text("Player \(currentPlayerNumber)'s Turn")
-                        .font(.title2)
-                        .bold()
+                            Text("Player \(currentPlayerNumber)'s Turn")
+                                .font(.system(size: 46, weight: .heavy, design: .rounded))
+                                .lineLimit(1)
+                        }
 
-                    scoreBoardView
+                        Spacer()
 
-                    if let errorMessage = musicService.errorMessage {
-                        Text(errorMessage)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                            .multilineTextAlignment(.center)
+                        scoreBoardView
                     }
+                    .padding(.horizontal, 70)
+                    .padding(.top, 34)
 
-                    if isPlayingClip {
-                        Text("Listen...")
-                            .font(.title)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("Say the song title and artist")
-                            .font(.title2)
-                            .foregroundStyle(.secondary)
-                    }
+                    Spacer(minLength: 12)
 
-                    if isAnswering {
-                        FocusableTextField(
-                            text: $answerText,
-                            placeholder: "Hold Siri button and speak answer",
-                            becomeFirstResponder: true,
-                            onSubmit: {
-                                submitAnswer()
-                            }
-                        )
-                        .frame(width: 700, height: 70)
-                        .id(currentRound.number)
-                    } else if !answerText.isEmpty {
-                        Text(answerText)
-                            .font(.title2)
-                            .padding()
-                            .frame(width: 700, height: 70)
+                    mysterySongCard
+
+                    VStack(spacing: 18) {
+                        if let errorMessage = musicService.errorMessage {
+                            Text(errorMessage)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                                .multilineTextAlignment(.center)
+                        }
+
+                        if isPlayingClip {
+                            Text("Listen carefully...")
+                                .font(.system(size: 34, weight: .bold, design: .rounded))
+                                .foregroundStyle(.secondary)
+
+                            Text("\(selectedDifficulty?.clipSeconds ?? 15)-second clip")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Make your guess")
+                                .font(.system(size: 34, weight: .bold, design: .rounded))
+
+                            Text("Hold the Siri button and say the song title and artist")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if isAnswering {
+                            FocusableTextField(
+                                text: $answerText,
+                                placeholder: "Song title and artist",
+                                becomeFirstResponder: true,
+                                onSubmit: {
+                                    submitAnswer()
+                                }
+                            )
+                            .frame(width: 860, height: 78)
+                            .padding(.horizontal, 20)
                             .background(.regularMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                            .id(currentRound.number)
+                        } else if !answerText.isEmpty {
+                            Text(answerText)
+                                .font(.title2)
+                                .padding()
+                                .frame(width: 860, height: 78)
+                                .background(.regularMaterial)
+                                .clipShape(RoundedRectangle(cornerRadius: 18))
+                        }
                     }
+                    .padding(.bottom, 54)
+
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+    }
+
+    private var mysterySongCard: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 36)
+                .fill(.black.opacity(0.62))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 36)
+                        .stroke(.white.opacity(0.16), lineWidth: 2)
+                )
+                .shadow(radius: 32)
+
+            VStack(spacing: 24) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 28)
+                        .fill(.thinMaterial)
+                        .frame(width: 360, height: 150)
+
+                    if isPlayingClip {
+                        AnimatedWaveformView()
+                    } else {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 78, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
+                }
+
+                VStack(spacing: 10) {
+                    Text(isPlayingClip ? "Mystery Song Playing" : "Ready for Your Answer")
+                        .font(.system(size: 46, weight: .heavy, design: .rounded))
+                        .lineLimit(1)
+
+                    Text(isPlayingClip ? "Name the tune before the reveal." : "Say your best guess out loud.")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .padding(44)
+        }
+        .frame(width: 760, height: 380)
     }
 
     private var scoreBoardView: some View {
@@ -1269,6 +1338,48 @@ struct GameView: View {
         }
 
         return collapsed
+    }
+}
+
+private struct AnimatedWaveformView: View {
+    @State private var isAnimating = false
+
+    private let barCount = 22
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<barCount, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(.white.opacity(0.9))
+                    .frame(width: 9, height: isAnimating ? animatedHeight(for: index) : 28)
+                    .animation(
+                        .easeInOut(duration: animationDuration(for: index))
+                            .repeatForever(autoreverses: true)
+                            .delay(animationDelay(for: index)),
+                        value: isAnimating
+                    )
+            }
+        }
+        .frame(width: 300, height: 120)
+        .onAppear {
+            isAnimating = true
+        }
+        .onDisappear {
+            isAnimating = false
+        }
+    }
+
+    private func animatedHeight(for index: Int) -> CGFloat {
+        let pattern: [CGFloat] = [36, 78, 52, 106, 64, 92, 44, 118, 70, 96, 56]
+        return pattern[index % pattern.count]
+    }
+
+    private func animationDuration(for index: Int) -> Double {
+        0.42 + Double(index % 5) * 0.08
+    }
+
+    private func animationDelay(for index: Int) -> Double {
+        Double(index % 7) * 0.045
     }
 }
 

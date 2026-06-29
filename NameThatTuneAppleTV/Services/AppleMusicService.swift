@@ -15,7 +15,7 @@ final class AppleMusicService: ObservableObject {
         ApplicationMusicPlayer.shared
     }
     private var previewPlayer: AVPlayer?
-    private let previewClipVolume: Float = 0.25
+    private let previewClipVolume: Float = 0.35
     private let recentPlaylistIDsKey = "recentPlaylistIDs"
 
     func requestAuthorization() async {

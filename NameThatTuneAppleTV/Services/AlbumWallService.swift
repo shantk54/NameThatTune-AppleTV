@@ -36,7 +36,7 @@ final class AlbumWallService: ObservableObject {
 
         do {
             var request = MusicLibraryRequest<Album>()
-            request.limit = 700
+            request.limit = 1000
 
             let response = try await request.response()
             let albums = Array(response.items)
