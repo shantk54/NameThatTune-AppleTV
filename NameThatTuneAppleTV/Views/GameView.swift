@@ -330,6 +330,7 @@ struct GameView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: selectedPlayerCount)
+        .animation(.easeInOut(duration: 0.25), value: selectedDifficulty)
         .onChange(of: focusedControl) { newFocus in
             keepFocusInCurrentSettingsSection(newFocus)
         }
