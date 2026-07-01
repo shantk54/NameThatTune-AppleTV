@@ -181,6 +181,12 @@ final class AppleMusicService: ObservableObject {
 
     func stop() {
         player.stop()
+        stopPreviewClip()
+    }
+
+    func stopPreviewClip() {
+        previewPlayer?.pause()
+        previewPlayer = nil
     }
     
     func getGameSongs() -> [GameSong] {
@@ -194,7 +200,7 @@ final class AppleMusicService: ObservableObject {
         }
     }
     
-    func playPreviewClip(for gameSong: GameSong, seconds: UInt64 = 15) async {
+    func startPreviewClip(for gameSong: GameSong) async {
         let searchTerm = "\(gameSong.title) \(gameSong.artist)"
 
         do {
@@ -218,15 +224,10 @@ final class AppleMusicService: ObservableObject {
 
             errorMessage = nil
 
-            previewPlayer?.pause()
+            stopPreviewClip()
             previewPlayer = AVPlayer(url: previewURL)
             previewPlayer?.volume = previewClipVolume
             previewPlayer?.play()
-
-            try? await Task.sleep(nanoseconds: seconds * 1_000_000_000)
-
-            previewPlayer?.pause()
-            previewPlayer = nil
         } catch {
             let nsError = error as NSError
             errorMessage = """
@@ -237,6 +238,12 @@ final class AppleMusicService: ObservableObject {
             Info: \(nsError.userInfo)
             """
         }
+    }
+
+    func playPreviewClip(for gameSong: GameSong, seconds: UInt64 = 15) async {
+        await startPreviewClip(for: gameSong)
+        try? await Task.sleep(nanoseconds: seconds * 1_000_000_000)
+        stopPreviewClip()
     }
     
 }

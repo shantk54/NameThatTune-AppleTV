@@ -619,7 +619,7 @@ struct GameView: View {
                     VStack(spacing: 2) {
                         Image(systemName: "crown.fill")
                             .font(.caption2)
-                            .opacity(playerScores[index] == leadingPlayerScore && leadingPlayerScore > 0 ? 1 : 0)
+                            .opacity(playerScores.count > 1 && playerScores[index] == leadingPlayerScore && leadingPlayerScore > 0 ? 1 : 0)
 
                         Text("P\(index + 1)")
                             .font(.caption)
@@ -1054,16 +1054,28 @@ struct GameView: View {
     }
 
     private func playClipThenAnswer(for song: GameSong, sessionID: UUID) async {
-        if song.musicKitSong != nil {
-            await musicService.playPreviewClip(for: song, seconds: selectedDifficulty?.clipSeconds ?? 15)
-        } else {
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+        let clipSeconds = selectedDifficulty?.clipSeconds ?? 15
+        let startupBufferNanoseconds: UInt64 = 700_000_000
+        let officialClipNanoseconds = clipSeconds * 1_000_000_000
+
+        let playbackTask = Task {
+            if song.musicKitSong != nil {
+                await musicService.playPreviewClip(for: song, seconds: clipSeconds + 1)
+            } else {
+                try? await Task.sleep(nanoseconds: startupBufferNanoseconds + officialClipNanoseconds)
+            }
         }
 
+        try? await Task.sleep(nanoseconds: startupBufferNanoseconds)
+        try? await Task.sleep(nanoseconds: officialClipNanoseconds)
+
         guard !Task.isCancelled, sessionID == playbackSessionID else {
+            playbackTask.cancel()
             return
         }
 
+        musicService.stop()
+        playbackTask.cancel()
         clipPlaybackTask = nil
         isPlayingClip = false
         isAnswering = true
