@@ -886,12 +886,10 @@ struct GameView: View {
         }
 
         if selectedRoundCount != nil {
-            let difficultyToFocus = selectedDifficulty ?? .easy
             selectedRoundCount = nil
-            selectedDifficulty = nil
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                focusedControl = .difficulty(difficultyToFocus)
+                focusedControl = .roundCount(3)
             }
         } else if selectedDifficulty != nil {
             selectedDifficulty = nil
