@@ -799,7 +799,7 @@ struct GameView: View {
     }
     
     private func refreshDisplayedAlbumWall() {
-        displayedAlbumArtworks = albumArtworks.shuffled()
+        displayedAlbumArtworks = albumArtworks
     }
 
     @ViewBuilder

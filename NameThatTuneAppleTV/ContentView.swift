@@ -68,7 +68,6 @@ struct ContentView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 32))
 
                 Button {
-                    albumWallService.refreshAlbumWallArtwork()
                     DispatchQueue.main.async {
                         isShowingGame = true
                     }
