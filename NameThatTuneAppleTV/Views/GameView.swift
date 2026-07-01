@@ -116,6 +116,10 @@ struct GameView: View {
         }
     }
 
+    private var leadingPlayerScore: Int {
+        playerScores.max() ?? 0
+    }
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             if shouldShowAlbumWallBackground, !displayedAlbumArtworks.isEmpty {
@@ -612,21 +616,25 @@ struct GameView: View {
                     .font(.title2)
             } else {
                 ForEach(playerScores.indices, id: \.self) { index in
-                    VStack(spacing: 6) {
+                    VStack(spacing: 2) {
+                        Image(systemName: "crown.fill")
+                            .font(.caption2)
+                            .opacity(playerScores[index] == leadingPlayerScore && leadingPlayerScore > 0 ? 1 : 0)
+
                         Text("P\(index + 1)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
 
                         Text("\(playerScores[index])")
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .font(.system(size: 38, weight: .bold, design: .rounded))
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.45)
                             .frame(maxWidth: .infinity)
                     }
                     .padding(.horizontal, 14)
-                    .frame(width: scoreBoxWidth, height: 82)
+                    .frame(width: scoreBoxWidth, height: 92)
                     .background(index == currentPlayerIndex ? .thinMaterial : .regularMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
