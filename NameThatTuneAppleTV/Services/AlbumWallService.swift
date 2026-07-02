@@ -13,6 +13,8 @@ final class AlbumWallService: ObservableObject {
     private var libraryAlbumsWithArtwork: [Album] = []
     private var albumWallAlbums: [Album] = []
     private var isLobbyMusicPlaying = false
+    private var isLobbyMusicStartInProgress = false
+    private var lobbyPlaybackRequestID = UUID()
     private var lobbyPlayer: ApplicationMusicPlayer { ApplicationMusicPlayer.shared }
 
     func loadAlbumWallArtwork(targetArtworkCount: Int = 45) async {
@@ -92,15 +94,25 @@ final class AlbumWallService: ObservableObject {
 
     func playRandomLobbyMusic() async {
         guard !isLobbyMusicPlaying else {
-            print("AlbumWallService: lobby music already playing")
+            print("AlbumWallService: lobby music already playing, ignoring duplicate start request")
             return
         }
+
+        guard !isLobbyMusicStartInProgress else {
+            print("AlbumWallService: lobby music start already in progress, ignoring duplicate start request")
+            return
+        }
+
+        isLobbyMusicStartInProgress = true
+        let requestID = UUID()
+        lobbyPlaybackRequestID = requestID
 
         let albumsToSearch = albumWallAlbums.shuffled()
         print("AlbumWallService: starting lobby music search, albums available = \(albumsToSearch.count)")
 
         guard !albumsToSearch.isEmpty else {
             print("AlbumWallService: no album wall albums available for lobby music")
+            isLobbyMusicStartInProgress = false
             return
         }
 
@@ -115,7 +127,6 @@ final class AlbumWallService: ObservableObject {
                     if case .song(let song) = track {
                         return song
                     }
-
                     return nil
                 } ?? []
 
@@ -127,11 +138,21 @@ final class AlbumWallService: ObservableObject {
                 }
 
                 print("AlbumWallService: selected lobby song = \(song.title), album = \(album.title)")
-                lobbyPlayer.stop()
-                lobbyPlayer.queue = [song]
-                try await withTimeout(seconds: 6) {
-                    try await self.lobbyPlayer.play()
+                guard requestID == lobbyPlaybackRequestID else {
+                    print("AlbumWallService: ignoring stale lobby music request before playback for \(song.title)")
+                    isLobbyMusicStartInProgress = false
+                    return
                 }
+
+                try await playLobbySong(song, requestID: requestID)
+
+                guard requestID == lobbyPlaybackRequestID else {
+                    print("AlbumWallService: ignoring stale lobby music request after playback for \(song.title)")
+                    isLobbyMusicStartInProgress = false
+                    return
+                }
+
+                isLobbyMusicStartInProgress = false
                 isLobbyMusicPlaying = true
                 print("AlbumWallService: playing lobby music full song = \(song.title), album = \(album.title)")
                 return
@@ -140,12 +161,27 @@ final class AlbumWallService: ObservableObject {
             }
         }
 
+        isLobbyMusicStartInProgress = false
         isLobbyMusicPlaying = false
         print("AlbumWallService: could not find a playable lobby song from selected album wall albums")
     }
 
-    func stopLobbyMusic() {
+    private func playLobbySong(_ song: Song, requestID: UUID) async throws {
         lobbyPlayer.stop()
+
+        guard requestID == lobbyPlaybackRequestID else {
+            print("AlbumWallService: cancelling stale lobby playback attempt for \(song.title)")
+            return
+        }
+
+        lobbyPlayer.queue = [song]
+        try await lobbyPlayer.play()
+    }
+
+    func stopLobbyMusic() {
+        lobbyPlaybackRequestID = UUID()
+        lobbyPlayer.stop()
+        isLobbyMusicStartInProgress = false
         isLobbyMusicPlaying = false
     }
 

@@ -669,8 +669,11 @@ struct GameView: View {
             Button("Back to Title") {
                 resetGame()
                 refreshDisplayedAlbumWall()
-                onReturnToTitle()
                 dismiss()
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    onReturnToTitle()
+                }
             }
             .font(.title2)
         }
@@ -924,7 +927,7 @@ struct GameView: View {
         revealPlaybackTask = nil
 
         if hadActivePlayback {
-            musicService.stop()
+            musicService.stopPreviewClip()
         }
 
         isPlayingClip = false
@@ -950,8 +953,11 @@ struct GameView: View {
         isPlayingClip = false
         isAnswering = false
         refreshDisplayedAlbumWall()
-        onReturnToTitle()
         dismiss()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            onReturnToTitle()
+        }
     }
 
     private func setupMusic() async {
@@ -1060,7 +1066,7 @@ struct GameView: View {
 
         let playbackTask = Task {
             if song.musicKitSong != nil {
-                await musicService.playPreviewClip(for: song, seconds: clipSeconds + 1)
+                await musicService.startPreviewClip(for: song)
             } else {
                 try? await Task.sleep(nanoseconds: startupBufferNanoseconds + officialClipNanoseconds)
             }
@@ -1071,10 +1077,11 @@ struct GameView: View {
 
         guard !Task.isCancelled, sessionID == playbackSessionID else {
             playbackTask.cancel()
+            musicService.stopPreviewClip()
             return
         }
 
-        musicService.stop()
+        musicService.stopPreviewClip()
         playbackTask.cancel()
         clipPlaybackTask = nil
         isPlayingClip = false

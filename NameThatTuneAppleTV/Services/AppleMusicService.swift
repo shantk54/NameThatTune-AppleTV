@@ -181,7 +181,6 @@ final class AppleMusicService: ObservableObject {
 
     func stop() {
         player.stop()
-        stopPreviewClip()
     }
 
     func stopPreviewClip() {
